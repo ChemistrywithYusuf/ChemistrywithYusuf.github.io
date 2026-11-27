@@ -165,6 +165,7 @@ footer{max-width:1180px;margin:0 auto;padding:20px max(4vw,14px) 40px;font-size:
 @media (prefers-reduced-motion:reduce){#app.pg{animation:none}}
 .printbtn{margin-left:8px}
 @media print{.top,footer,.side,.deckbar,.btn,button,.cy-inst,.cy-note,.cy-modal,#gm-toast,.chhead .num,.chhead .row,.simbox,.vid{display:none!important}body{background:#fff;color:#000;font-size:12pt}main{max-width:none;padding:0}.card,.pp{box-shadow:none;break-inside:avoid}.cols{display:block!important}.ans,.rv,.fb{display:block!important}a{color:#000;text-decoration:none}h2{break-after:avoid}.chhead{background:none!important;color:#000!important;padding:0!important}.chhead *{color:#000!important}}
+.btn.yt{background:#e00;color:#fff;display:inline-flex;align-items:center}.btn.yt:hover{background:#c00}
 </style>
 </head>
 <body>
@@ -175,7 +176,7 @@ footer{max-width:1180px;margin:0 auto;padding:20px max(4vw,14px) 40px;font-size:
 </header>
 <main id="app" tabindex="-1"><p class="muted">Loading…</p></main>
 <footer>
- <p><b>Cambridge International AS Level Chemistry (9701)</b> · syllabus for examination in 2025, 2026 and 2027 · Chemistry with Yusuf: Learn · Practise · Excel.</p>
+ <p><b>Cambridge International AS Level Chemistry (9701)</b> · syllabus for examination in 2025, 2026 and 2027 · Chemistry with Yusuf: Learn · Practise · Excel. · <a href="https://www.youtube.com/@ChemistrywithYusuf?sub_confirmation=1" target="_blank" rel="noopener">▶ Subscribe on YouTube</a></p>
  <p>Every practice question on this site is an original question written to test the same skill as the Cambridge past-paper question it references (for example 9701/12/M/J/25 Q2). They are not Cambridge questions; use the reference to find the official paper. This site is not produced or endorsed by Cambridge University Press &amp; Assessment.</p>
 </footer>
 <script src="sims.js"></script>
@@ -266,7 +267,7 @@ document.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)r
 /* ---------- views ---------- */
 function home(){setTimeout(recent,0);const done=Object.values(P.done).filter(Boolean).length;const att=Object.keys(P.att).length;
  app.innerHTML=`<section class="hero"><div><span class="pill">Cambridge International AS Level · 9701</span>${window.EXTRAS?window.EXTRAS.countdownPill({P}):''}<h1>AS Chemistry, one chapter at a time</h1><p>Clear notes, interactive slides and every 2024–2026 Paper 1 and Paper 2 question rewritten as practice, with full solutions. Pick an element-tile to start.</p>
- <div class="row"><a class="btn y" href="#ch01" style="text-decoration:none">Start Chapter 1</a><a class="btn alt" href="#bank" style="text-decoration:none">Question bank</a></div>
+ <div class="row"><a class="btn y" href="#ch01" style="text-decoration:none">Start Chapter 1</a><a class="btn alt" href="#bank" style="text-decoration:none">Question bank</a><a class="btn yt" href="https://www.youtube.com/@ChemistrywithYusuf?sub_confirmation=1" target="_blank" rel="noopener" style="text-decoration:none">▶ Subscribe on YouTube</a></div>
  <div style="margin-top:22px"><div class="small muted">Your progress: ${done} of 22 chapters completed · ${att} questions attempted</div><div class="bar" style="margin-top:6px"><i style="width:${done/22*100}%"></i></div></div></div>
  <div>${grid()}<div class="legend"><span><i style="background:#22c8f2"></i>Physical</span><span><i style="background:#a78bfa"></i>Inorganic</span><span><i style="background:#34d399"></i>Organic</span><span><i style="background:#fb923c"></i>Analysis</span></div></div></section>
  <h2>Study tools</h2><div class="tiles">${[['#plan','Study planner','Set your exam date and get a week-by-week plan with your weak topics built in.'],['#ptable','Interactive periodic table','Tap any element for its data, colour the table by property and graph the trends.'],['#game-daily','Daily challenge','Five new questions every day. Keep your streak going and share your score.'],['#games','Chemistry games','Beat the Clock, Chemistry Millionaire, Match-Up and Head-to-Head. Earn XP, levels and badges.'],['#ch01-slides','Interactive slides','Teach or revise from a full slide deck for each chapter.'],['#mock','Mock exam','A timed Paper 1-style mock with a topic breakdown at the end.'],['#bank','Past-paper question bank','Filter by year, session, paper, variant, chapter and difficulty.'],['#quiz','Quizzes','Topic quizzes and timed exam-style practice with instant feedback.'],['#flash','Flashcards','Definitions, trends and equations to flip and learn.']].map(([h,t,d])=>`<a class="tile card" href="${h}"><h3>${t}</h3><p class="muted small" style="margin:0">${d}</p></a>`).join('')}</div>
