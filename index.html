@@ -155,13 +155,23 @@ footer{max-width:1180px;margin:0 auto;padding:20px max(4vw,14px) 40px;font-size:
 @media(max-width:420px){.ptab{grid-template-columns:repeat(4,minmax(0,1fr))}.mrow{grid-template-columns:minmax(0,1fr)}}
 .scroll{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
 .ytlite{display:block;width:100%;max-width:640px;aspect-ratio:16/9;border:0;border-radius:10px;background:#000 center/cover no-repeat;cursor:pointer;position:relative;padding:0}.ytplay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:68px;height:48px;border-radius:12px;background:#e00;color:#fff;font-size:24px;line-height:48px;text-align:center}.ytlite:hover .ytplay,.ytlite:focus .ytplay{background:#f22}.ytframe{display:block;width:100%;max-width:640px;aspect-ratio:16/9;border:0;border-radius:10px}.vidembed{display:block}
+
+.menu-btn,.theme-btn{border:0;background:#13285e;color:#fff;border-radius:999px;min-height:40px;padding:0 14px;font-weight:700}
+.menu-btn{display:none}.theme-btn{order:5;width:40px;padding:0;font-size:18px}
+@media(max-width:430px){.mtx{display:none}.menu-btn{width:44px;justify-content:center;padding:0;font-size:20px}.top{gap:10px}}
+@media(max-width:760px){.top .brand{order:1}.theme-btn{order:2;margin-left:auto}.menu-btn{display:inline-flex;align-items:center;order:3}.srch{order:4;flex:1 1 100%;max-width:none}.top nav{order:5}.top nav{display:none}.top nav.open{display:grid;grid-template-columns:1fr 1fr;gap:6px;overflow:visible;padding:6px 0 4px}.top nav.open a{text-align:center;background:#13285e}}
+@keyframes pgin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+#app.pg{animation:pgin .28s ease-out}
+@media (prefers-reduced-motion:reduce){#app.pg{animation:none}}
+.printbtn{margin-left:8px}
+@media print{.top,footer,.side,.deckbar,.btn,button,.cy-inst,.cy-note,.cy-modal,#gm-toast,.chhead .num,.chhead .row,.simbox,.vid{display:none!important}body{background:#fff;color:#000;font-size:12pt}main{max-width:none;padding:0}.card,.pp{box-shadow:none;break-inside:avoid}.cols{display:block!important}.ans,.rv,.fb{display:block!important}a{color:#000;text-decoration:none}h2{break-after:avoid}.chhead{background:none!important;color:#000!important;padding:0!important}.chhead *{color:#000!important}}
 </style>
 </head>
 <body>
 <header class="top">
  <a class="brand" href="#home"><span class="logo">CY</span>Chemistry with <b>Yusuf</b></a>
  <div class="srch"><input id="q" type="search" placeholder="Search chapters, definitions, questions…" aria-label="Search"></div>
- <nav id="nav"><a href="#home">Home</a><a href="#chapters">Chapters</a><a href="#bank">Question bank</a><a href="#quiz">Quizzes</a><a href="#mock">Mock exam</a><a href="#games">Games</a><a href="#flash">Flashcards</a><a href="#progress">Progress</a></nav>
+ <button class="menu-btn" id="menubtn" aria-expanded="false" aria-controls="nav" aria-label="Menu">☰<span class="mtx"> Menu</span></button><button class="theme-btn" id="themebtn" aria-label="Switch light or dark mode">🌙</button><nav id="nav"><a href="#home">Home</a><a href="#chapters">Chapters</a><a href="#bank">Question bank</a><a href="#quiz">Quizzes</a><a href="#mock">Mock exam</a><a href="#games">Games</a><a href="#flash">Flashcards</a><a href="#ptable">Periodic table</a><a href="#plan">Planner</a><a href="#progress">Progress</a></nav>
 </header>
 <main id="app" tabindex="-1"><p class="muted">Loading…</p></main>
 <footer>
@@ -170,6 +180,7 @@ footer{max-width:1180px;margin:0 auto;padding:20px max(4vw,14px) 40px;font-size:
 </footer>
 <script src="sims.js"></script>
 <script src="games.js"></script>
+<script src="extras.js"></script>
 <script>
 {
 const CHAPTERS=[
@@ -254,17 +265,17 @@ document.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)r
 });
 /* ---------- views ---------- */
 function home(){setTimeout(recent,0);const done=Object.values(P.done).filter(Boolean).length;const att=Object.keys(P.att).length;
- app.innerHTML=`<section class="hero"><div><span class="pill">Cambridge International AS Level · 9701</span><h1>AS Chemistry, one chapter at a time</h1><p>Clear notes, interactive slides and every 2024–2026 Paper 1 and Paper 2 question rewritten as practice, with full solutions. Pick an element-tile to start.</p>
+ app.innerHTML=`<section class="hero"><div><span class="pill">Cambridge International AS Level · 9701</span>${window.EXTRAS?window.EXTRAS.countdownPill({P}):''}<h1>AS Chemistry, one chapter at a time</h1><p>Clear notes, interactive slides and every 2024–2026 Paper 1 and Paper 2 question rewritten as practice, with full solutions. Pick an element-tile to start.</p>
  <div class="row"><a class="btn y" href="#ch01" style="text-decoration:none">Start Chapter 1</a><a class="btn alt" href="#bank" style="text-decoration:none">Question bank</a></div>
  <div style="margin-top:22px"><div class="small muted">Your progress: ${done} of 22 chapters completed · ${att} questions attempted</div><div class="bar" style="margin-top:6px"><i style="width:${done/22*100}%"></i></div></div></div>
  <div>${grid()}<div class="legend"><span><i style="background:#22c8f2"></i>Physical</span><span><i style="background:#a78bfa"></i>Inorganic</span><span><i style="background:#34d399"></i>Organic</span><span><i style="background:#fb923c"></i>Analysis</span></div></div></section>
- <h2>Study tools</h2><div class="tiles">${[['#game-daily','Daily challenge','Five new questions every day. Keep your streak going and share your score.'],['#games','Chemistry games','Beat the Clock, Chemistry Millionaire, Match-Up and Head-to-Head. Earn XP, levels and badges.'],['#ch01-slides','Interactive slides','Teach or revise from a full slide deck for each chapter.'],['#mock','Mock exam','A timed Paper 1-style mock with a topic breakdown at the end.'],['#bank','Past-paper question bank','Filter by year, session, paper, variant, chapter and difficulty.'],['#quiz','Quizzes','Topic quizzes and timed exam-style practice with instant feedback.'],['#flash','Flashcards','Definitions, trends and equations to flip and learn.']].map(([h,t,d])=>`<a class="tile card" href="${h}"><h3>${t}</h3><p class="muted small" style="margin:0">${d}</p></a>`).join('')}</div>
+ <h2>Study tools</h2><div class="tiles">${[['#plan','Study planner','Set your exam date and get a week-by-week plan with your weak topics built in.'],['#ptable','Interactive periodic table','Tap any element for its data, colour the table by property and graph the trends.'],['#game-daily','Daily challenge','Five new questions every day. Keep your streak going and share your score.'],['#games','Chemistry games','Beat the Clock, Chemistry Millionaire, Match-Up and Head-to-Head. Earn XP, levels and badges.'],['#ch01-slides','Interactive slides','Teach or revise from a full slide deck for each chapter.'],['#mock','Mock exam','A timed Paper 1-style mock with a topic breakdown at the end.'],['#bank','Past-paper question bank','Filter by year, session, paper, variant, chapter and difficulty.'],['#quiz','Quizzes','Topic quizzes and timed exam-style practice with instant feedback.'],['#flash','Flashcards','Definitions, trends and equations to flip and learn.']].map(([h,t,d])=>`<a class="tile card" href="${h}"><h3>${t}</h3><p class="muted small" style="margin:0">${d}</p></a>`).join('')}</div>
  <h2>Recent videos</h2><div class="tiles" id="recent"></div>`}
 async function recent(){await load(1);const v=allPP().filter(x=>x.video&&x.video.url).slice(0,6);const el=$('#recent');if(el)el.innerHTML=v.map(x=>`<a class="tile card" href="${esc(x.video.url)}" target="_blank" rel="noopener">${EMBED&&ytid(x.video.url)?`<img src="https://i.ytimg.com/vi/${ytid(x.video.url)}/mqdefault.jpg" alt="" loading="lazy" style="width:100%;border-radius:8px;margin-bottom:6px">`:''}<span class="pill">▶ ${esc(x.ref)}</span><h3 style="font-size:17px">${esc(strip(x.skill))}</h3><p class="small muted" style="margin:0">Chapter ${x.chapter} · ${esc(x.chTitle)}</p></a>`).join('')}
 function grid(){return `<div class="ptab" role="list">${CHAPTERS.map(([n,t,s,g])=>{const live=AVAILABLE.includes(n);return `<a role="listitem" class="el g-${g} ${live?'live':'soon'}" href="${live?'#ch'+pad(n):'#chapters'}" title="Chapter ${n}: ${esc(t)}${live?'':' (coming soon)'}"><span class="z">${n}</span><span class="sy">${s}</span><span class="nm">${esc(t)}</span>${P.done[n]?'<span class="fill" style="width:100%"></span>':''}</a>`}).join('')}</div>`}
 function chapters(){app.innerHTML=`<h1>All 22 chapters</h1><p class="muted">One new chapter is added each day. Chapters follow the Cambridge 9701 AS syllabus topics 1–22.</p><div class="tiles">${CHAPTERS.map(([n,t])=>{const live=AVAILABLE.includes(n);return `<div class="card"><span class="pill">Chapter ${n}</span><h3 style="margin-top:4px">${esc(t)}</h3>${live?`<div class="row"><a class="btn" style="text-decoration:none" href="#ch${pad(n)}">Notes</a><a class="btn alt" style="text-decoration:none" href="#ch${pad(n)}-slides">Slides</a></div>`:`<p class="muted small" style="margin:0">Coming soon</p>`}</div>`}).join('')}</div>`}
 async function chapter(n){const c=await load(n);cur=c;uid=0;const secs=c.sections;
- app.innerHTML=`<div class="chhead"><span class="num">${n}</span><span class="pill" style="background:#1b3478;color:#bfefff">Chapter ${n} · Syllabus ${c.syllabus} · ${c.part}</span><h1>${c.title}</h1><p>${c.intro}</p><div class="row"><a class="btn y" style="text-decoration:none" href="#ch${pad(n)}-slides">Open slides</a><a class="btn alt" style="text-decoration:none;color:#fff;border-color:#3b5aa8" href="#flash">Flashcards</a><a class="btn alt" style="text-decoration:none;color:#fff;border-color:#3b5aa8" href="#quiz">Quiz</a></div></div>
+ app.innerHTML=`<div class="chhead"><span class="num">${n}</span><span class="pill" style="background:#1b3478;color:#bfefff">Chapter ${n} · Syllabus ${c.syllabus} · ${c.part}</span><h1>${c.title}</h1><p>${c.intro}</p><div class="row"><a class="btn y" style="text-decoration:none" href="#ch${pad(n)}-slides">Open slides</a><a class="btn alt" style="text-decoration:none;color:#fff;border-color:#3b5aa8" href="#flash">Flashcards</a><a class="btn alt" style="text-decoration:none;color:#fff;border-color:#3b5aa8" href="#quiz">Quiz</a><button class="btn alt" onclick="print()" style="color:#fff;border-color:#3b5aa8">🖨️ Print notes</button></div></div>
  <div class="cols"><nav class="side" aria-label="Chapter sections"><a href="#ch${pad(n)}" data-to="intro">Introduction</a>${secs.map(s=>`<a href="#ch${pad(n)}" data-to="${s.id}">${s.lo} ${s.title}</a>`).join('')}<a href="#ch${pad(n)}" data-to="sum">Summary</a><a href="#ch${pad(n)}" data-to="prac">Practice</a><a href="#ch${pad(n)}" data-to="assess">Chapter assessment</a></nav>
  <article><section id="intro" class="two"><div class="card"><h3 style="margin-top:0">Learning objectives</h3><ul class="tick">${c.objectives.map(o=>`<li>${o}</li>`).join('')}</ul></div><div><div class="card"><h3 style="margin-top:0">What you should already know</h3><ul class="tick">${c.prior.map(o=>`<li>${o}</li>`).join('')}</ul></div><div class="card" style="margin-top:16px"><h3 style="margin-top:0">Why this matters</h3><p style="margin:0">${c.why}</p></div></div></section>
  ${secs.map(s=>`<section id="${s.id}"><h2>${s.lo} ${s.title}</h2>${s.blocks.map(block).join('')}</section>`).join('')}
@@ -361,10 +372,19 @@ async function search(term){await loadAll();const q=term.toLowerCase();const R=[
 /* ---------- router ---------- */
 let st;$('#q').addEventListener('input',e=>{clearTimeout(st);const v=e.target.value.trim();st=setTimeout(()=>{if(v.length>1)search(v)},250)});
 async function route(){window.onkeydown=null;const h=(location.hash||'#home').slice(1);document.querySelectorAll('#nav a').forEach(a=>a.classList.toggle('on',a.getAttribute('href')==='#'+h||(h.startsWith('ch')&&a.getAttribute('href')==='#chapters')||(h.startsWith('game-')&&a.getAttribute('href')==='#games')));
- try{let m;if(h==='home')home();else if(h==='chapters')chapters();else if(m=h.match(/^ch(\d\d)-slides$/))await slides(+m[1]);else if(m=h.match(/^ch(\d\d)$/)){const n=+m[1];if(AVAILABLE.includes(n))await chapter(n);else chapters()}else if(h==='bank')await bank();else if(h==='quiz')await quiz();else if(h==='flash')await flash();else if(h==='progress')await progress();else if(h==='mock')await mock();else if(h==='games'||h.startsWith('game-'))await window.GAMES(h,{loadAll,P,save,esc,strip,app,AVAILABLE,title:n=>(CHAPTERS.find(c=>c[0]===n)||[0,''])[1]});else home();if(!h.match(/^ch\d\d$/))window.scrollTo(0,0)}
+ try{let m;if(h==='home')home();else if(h==='chapters')chapters();else if(m=h.match(/^ch(\d\d)-slides$/))await slides(+m[1]);else if(m=h.match(/^ch(\d\d)$/)){const n=+m[1];if(AVAILABLE.includes(n))await chapter(n);else chapters()}else if(h==='bank')await bank();else if(h==='quiz')await quiz();else if(h==='flash')await flash();else if(h==='progress')await progress();else if(h==='mock')await mock();else if(h==='plan'||h==='ptable')await window.EXTRAS(h,{loadAll,P,save,esc,app,AVAILABLE,CHAPTERS,D});else if(h==='games'||h.startsWith('game-'))await window.GAMES(h,{loadAll,P,save,esc,strip,app,AVAILABLE,title:n=>(CHAPTERS.find(c=>c[0]===n)||[0,''])[1]});else home();if(!h.match(/^ch\d\d$/))window.scrollTo(0,0);app.classList.remove('pg');void app.offsetWidth;app.classList.add('pg');const nv=$('#nav');if(nv){nv.classList.remove('open');$('#menubtn').setAttribute('aria-expanded','false')}}
  catch(err){app.innerHTML=`<div class="card"><h2>Something went wrong loading this page</h2><p class="muted">${esc(err.message)}</p><a href="#home">Back to home</a></div>`}}
 addEventListener('hashchange',route);route();
 }
+</script>
+<script>
+/* light/dark mode and mobile menu */
+(function(){const r=document.documentElement,b=document.getElementById('themebtn');let t=null;try{t=localStorage.getItem('cy-theme')}catch(e){}
+ const sys=()=>matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+ const apply=v=>{if(v)r.setAttribute('data-theme',v);else r.removeAttribute('data-theme');const dark=(v||sys())==='dark';b.textContent=dark?'☀️':'🌙';b.setAttribute('aria-label',dark?'Switch to light mode':'Switch to dark mode');document.querySelector('meta[name=theme-color]')?.setAttribute('content','#0a1a44')};
+ apply(t);b.onclick=()=>{const now=(r.getAttribute('data-theme')||sys())==='dark'?'light':'dark';apply(now);try{localStorage.setItem('cy-theme',now)}catch(e){}};
+ const m=document.getElementById('menubtn'),n=document.getElementById('nav');m.onclick=()=>{const o=n.classList.toggle('open');m.setAttribute('aria-expanded',o);m.innerHTML=o?'✕<span class="mtx"> Close</span>':'☰<span class="mtx"> Menu</span>'};
+ n.addEventListener('click',e=>{if(e.target.tagName==='A'){n.classList.remove('open');m.setAttribute('aria-expanded','false');m.innerHTML='☰<span class="mtx"> Menu</span>'}});})();
 </script>
 <script>
 /* ---- installable app (works on the GitHub site; switched off inside claude.ai and the offline file) ---- */

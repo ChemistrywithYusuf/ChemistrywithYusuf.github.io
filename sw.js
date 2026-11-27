@@ -1,7 +1,7 @@
 /* Chemistry with Yusuf – offline support. Network first (so daily updates arrive), cache as fallback. */
-const VERSION = 'cy9701-v1';
-const CORE = ['./', 'index.html', 'sims.js', 'games.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png',
-  'data/elements.json', 'data/ch01.json', 'data/ch02.json'];
+const VERSION = 'cy9701-v2';
+const CORE = ['./', 'index.html', 'sims.js', 'games.js', 'extras.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png',
+  'data/elements.json', 'ptable.json', 'data/ch01.json', 'data/ch02.json'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => Promise.all(CORE.map(u => c.add(new Request(u, { cache: 'reload' })).catch(() => null)))).then(() => self.skipWaiting()));
 });
