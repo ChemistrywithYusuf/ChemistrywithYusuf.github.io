@@ -3,6 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a1a44">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Chem with Yusuf">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>AS Chemistry 9701</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -250,7 +258,7 @@ function home(){setTimeout(recent,0);const done=Object.values(P.done).filter(Boo
  <div class="row"><a class="btn y" href="#ch01" style="text-decoration:none">Start Chapter 1</a><a class="btn alt" href="#bank" style="text-decoration:none">Question bank</a></div>
  <div style="margin-top:22px"><div class="small muted">Your progress: ${done} of 22 chapters completed · ${att} questions attempted</div><div class="bar" style="margin-top:6px"><i style="width:${done/22*100}%"></i></div></div></div>
  <div>${grid()}<div class="legend"><span><i style="background:#22c8f2"></i>Physical</span><span><i style="background:#a78bfa"></i>Inorganic</span><span><i style="background:#34d399"></i>Organic</span><span><i style="background:#fb923c"></i>Analysis</span></div></div></section>
- <h2>Study tools</h2><div class="tiles">${[['#games','Chemistry games','Beat the Clock, Chemistry Millionaire, Match-Up and Head-to-Head. Earn XP, levels and badges.'],['#ch01-slides','Interactive slides','Teach or revise from a full slide deck for each chapter.'],['#mock','Mock exam','A timed Paper 1-style mock with a topic breakdown at the end.'],['#bank','Past-paper question bank','Filter by year, session, paper, variant, chapter and difficulty.'],['#quiz','Quizzes','Topic quizzes and timed exam-style practice with instant feedback.'],['#flash','Flashcards','Definitions, trends and equations to flip and learn.']].map(([h,t,d])=>`<a class="tile card" href="${h}"><h3>${t}</h3><p class="muted small" style="margin:0">${d}</p></a>`).join('')}</div>
+ <h2>Study tools</h2><div class="tiles">${[['#game-daily','Daily challenge','Five new questions every day. Keep your streak going and share your score.'],['#games','Chemistry games','Beat the Clock, Chemistry Millionaire, Match-Up and Head-to-Head. Earn XP, levels and badges.'],['#ch01-slides','Interactive slides','Teach or revise from a full slide deck for each chapter.'],['#mock','Mock exam','A timed Paper 1-style mock with a topic breakdown at the end.'],['#bank','Past-paper question bank','Filter by year, session, paper, variant, chapter and difficulty.'],['#quiz','Quizzes','Topic quizzes and timed exam-style practice with instant feedback.'],['#flash','Flashcards','Definitions, trends and equations to flip and learn.']].map(([h,t,d])=>`<a class="tile card" href="${h}"><h3>${t}</h3><p class="muted small" style="margin:0">${d}</p></a>`).join('')}</div>
  <h2>Recent videos</h2><div class="tiles" id="recent"></div>`}
 async function recent(){await load(1);const v=allPP().filter(x=>x.video&&x.video.url).slice(0,6);const el=$('#recent');if(el)el.innerHTML=v.map(x=>`<a class="tile card" href="${esc(x.video.url)}" target="_blank" rel="noopener">${EMBED&&ytid(x.video.url)?`<img src="https://i.ytimg.com/vi/${ytid(x.video.url)}/mqdefault.jpg" alt="" loading="lazy" style="width:100%;border-radius:8px;margin-bottom:6px">`:''}<span class="pill">▶ ${esc(x.ref)}</span><h3 style="font-size:17px">${esc(strip(x.skill))}</h3><p class="small muted" style="margin:0">Chapter ${x.chapter} · ${esc(x.chTitle)}</p></a>`).join('')}
 function grid(){return `<div class="ptab" role="list">${CHAPTERS.map(([n,t,s,g])=>{const live=AVAILABLE.includes(n);return `<a role="listitem" class="el g-${g} ${live?'live':'soon'}" href="${live?'#ch'+pad(n):'#chapters'}" title="Chapter ${n}: ${esc(t)}${live?'':' (coming soon)'}"><span class="z">${n}</span><span class="sy">${s}</span><span class="nm">${esc(t)}</span>${P.done[n]?'<span class="fill" style="width:100%"></span>':''}</a>`}).join('')}</div>`}
@@ -353,10 +361,29 @@ async function search(term){await loadAll();const q=term.toLowerCase();const R=[
 /* ---------- router ---------- */
 let st;$('#q').addEventListener('input',e=>{clearTimeout(st);const v=e.target.value.trim();st=setTimeout(()=>{if(v.length>1)search(v)},250)});
 async function route(){window.onkeydown=null;const h=(location.hash||'#home').slice(1);document.querySelectorAll('#nav a').forEach(a=>a.classList.toggle('on',a.getAttribute('href')==='#'+h||(h.startsWith('ch')&&a.getAttribute('href')==='#chapters')||(h.startsWith('game-')&&a.getAttribute('href')==='#games')));
- try{let m;if(h==='home')home();else if(h==='chapters')chapters();else if(m=h.match(/^ch(\d\d)-slides$/))await slides(+m[1]);else if(m=h.match(/^ch(\d\d)$/)){const n=+m[1];if(AVAILABLE.includes(n))await chapter(n);else chapters()}else if(h==='bank')await bank();else if(h==='quiz')await quiz();else if(h==='flash')await flash();else if(h==='progress')await progress();else if(h==='mock')await mock();else if(h==='games'||h.startsWith('game-'))await window.GAMES(h,{loadAll,P,save,esc,strip,app,AVAILABLE});else home();if(!h.match(/^ch\d\d$/))window.scrollTo(0,0)}
+ try{let m;if(h==='home')home();else if(h==='chapters')chapters();else if(m=h.match(/^ch(\d\d)-slides$/))await slides(+m[1]);else if(m=h.match(/^ch(\d\d)$/)){const n=+m[1];if(AVAILABLE.includes(n))await chapter(n);else chapters()}else if(h==='bank')await bank();else if(h==='quiz')await quiz();else if(h==='flash')await flash();else if(h==='progress')await progress();else if(h==='mock')await mock();else if(h==='games'||h.startsWith('game-'))await window.GAMES(h,{loadAll,P,save,esc,strip,app,AVAILABLE,title:n=>(CHAPTERS.find(c=>c[0]===n)||[0,''])[1]});else home();if(!h.match(/^ch\d\d$/))window.scrollTo(0,0)}
  catch(err){app.innerHTML=`<div class="card"><h2>Something went wrong loading this page</h2><p class="muted">${esc(err.message)}</p><a href="#home">Back to home</a></div>`}}
 addEventListener('hashchange',route);route();
 }
+</script>
+<script>
+/* ---- installable app (works on the GitHub site; switched off inside claude.ai and the offline file) ---- */
+(function(){
+ const ok='serviceWorker' in navigator && (location.protocol==='https:'||location.hostname==='localhost') && !/claude\.ai|claudeusercontent|anthropic/.test(location.hostname);
+ const standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+ if(!ok)return;
+ navigator.serviceWorker.register('sw.js').then(r=>{if(!navigator.serviceWorker.controller)r.addEventListener('updatefound',()=>{const w=r.installing;w&&w.addEventListener('statechange',()=>{if(w.state==='activated')note('✅ Ready to use offline. Notes, games and quizzes now work without data.')})})}).catch(()=>{});
+ if(standalone)return;
+ let dismissed=false;try{dismissed=localStorage.getItem('cy-install-x')==='1'}catch(e){}
+ const css=document.createElement('style');css.textContent=`.cy-inst{position:fixed;right:16px;bottom:16px;z-index:50;display:flex;gap:6px;align-items:center;background:#0a1a44;color:#fff;border-radius:999px;padding:6px 6px 6px 16px;box-shadow:0 10px 30px rgba(10,26,68,.35);font-weight:700}.cy-inst button{border:0;border-radius:999px;min-height:40px;padding:0 14px;font-weight:800}.cy-inst .go{background:#ffd23f;color:#0a1a44}.cy-inst .x{background:transparent;color:#cfe2ff;padding:0 10px}.cy-modal{position:fixed;inset:0;background:rgba(5,12,32,.6);z-index:90;display:grid;place-items:center;padding:16px}.cy-modal>div{background:var(--card);color:var(--ink);border-radius:18px;padding:22px;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.4)}.cy-modal ol{padding-left:20px;line-height:1.8}.cy-note{position:fixed;left:50%;top:76px;transform:translateX(-50%);z-index:90;background:#0f2e1e;color:#eafaf0;border-radius:14px;padding:12px 18px;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,.3);max-width:92vw}`;document.head.appendChild(css);
+ function note(t){const n=document.createElement('div');n.className='cy-note';n.setAttribute('role','status');n.textContent=t;document.body.appendChild(n);setTimeout(()=>n.remove(),5000)}
+ function pill(onGo){if(dismissed||document.querySelector('.cy-inst'))return;const b=document.createElement('div');b.className='cy-inst';b.innerHTML='<span>📲 Get the app</span><button class="go">Install</button><button class="x" aria-label="Hide">✕</button>';document.body.appendChild(b);b.querySelector('.go').onclick=onGo;b.querySelector('.x').onclick=()=>{b.remove();try{localStorage.setItem('cy-install-x','1')}catch(e){}}}
+ let deferred=null;
+ addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;pill(async()=>{deferred.prompt();const c=await deferred.userChoice;if(c.outcome==='accepted'){document.querySelector('.cy-inst')?.remove()}deferred=null})});
+ addEventListener('appinstalled',()=>{document.querySelector('.cy-inst')?.remove();note('🎉 Installed! Find "Chem with Yusuf" on your home screen.')});
+ const ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+ if(ios)setTimeout(()=>pill(()=>{const m=document.createElement('div');m.className='cy-modal';m.innerHTML='<div role="dialog" aria-label="Install on iPhone or iPad"><h3 style="margin-top:0">Install on iPhone or iPad</h3><ol><li>Open this page in <b>Safari</b>.</li><li>Tap the <b>Share</b> button (the square with an arrow).</li><li>Choose <b>Add to Home Screen</b>, then <b>Add</b>.</li></ol><button class="btn y" style="width:100%">Got it</button></div>';document.body.appendChild(m);m.onclick=e=>{if(e.target===m||e.target.tagName==='BUTTON')m.remove()}}),1500);
+})();
 </script>
 </body>
 </html>
