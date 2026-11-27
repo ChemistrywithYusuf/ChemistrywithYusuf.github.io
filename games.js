@@ -134,6 +134,7 @@ async function loadPool() {
     for (const f of c.flash) FLASH.push({ ch: c.n, q: f.q, a: f.a });
   }
 }
+const chList = () => { const a = CY.AVAILABLE; return a.length === 1 ? 'Chapter ' + a[0] : `Chapters ${a[0]}–${a[a.length - 1]}` };
 const chSel = () => { const v = sessionStorage.getItem('gm-ch'); return v ? +v : 0 };
 const pool = () => { const c = chSel(); return POOL.filter(q => !c || q.ch === c) };
 const flashPool = () => { const c = chSel(); return FLASH.filter(q => !c || q.ch === c) };
@@ -151,7 +152,7 @@ const srcLine = q => q.ref ? `<div class="gm-src">Original practice question tes
 function chapterPicker() {
   const c = chSel();
   return `<label class="gm-chip">Questions from <select id="gm-ch" class="sel" style="border:0;background:transparent;font-weight:700">
-    <option value="0"${!c ? ' selected' : ''}>Chapters 1 and 2</option>${CY.AVAILABLE.map(n => `<option value="${n}"${c === n ? ' selected' : ''}>Chapter ${n} only</option>`).join('')}</select></label>`;
+    <option value="0"${!c ? ' selected' : ''}>${chList()}</option>${CY.AVAILABLE.map(n => `<option value="${n}"${c === n ? ' selected' : ''}>Chapter ${n} only</option>`).join('')}</select></label>`;
 }
 function wirePicker(rerender) { const s = $('#gm-ch'); if (s) s.onchange = () => { sessionStorage.setItem('gm-ch', s.value); rerender() } }
 function soundBtn() { return `<button class="gm-chip gm-mute" id="gm-snd" aria-pressed="${G().sound}">${G().sound ? '🔊 Sound on' : '🔇 Sound off'}</button>` }
@@ -169,7 +170,7 @@ function hub() {
     ['#game-cert', '🎓', 'Chapter certificates', 'Pass a 10-question chapter test with 7 or more to earn a certificate with your name. Download or print it.', Object.keys(G().certs || {}).length ? `${Object.keys(G().certs).length} certificate${Object.keys(G().certs).length > 1 ? 's' : ''} earned` : 'None yet'],
     ['#game-duel', '⚔️', 'Head-to-Head', 'Two players, one screen. First to tap the right answer wins the point. Great for class.', g.played.duel ? `Played ${g.played.duel} time${g.played.duel > 1 ? 's' : ''}` : 'Not played yet'],
   ];
-  app.innerHTML = `<div class="gm-hero"><div><span class="pill" style="background:#1b3478;color:#bfefff">Chapters 1 and 2 · ${POOL.length} questions · ${FLASH.length} key terms</span><h1>Chemistry games</h1><p>Learn by playing. Every correct answer earns XP, and XP raises your level.</p></div>
+  app.innerHTML = `<div class="gm-hero"><div><span class="pill" style="background:#1b3478;color:#bfefff">${chList()} · ${POOL.length} questions · ${FLASH.length} key terms</span><h1>Chemistry games</h1><p>Learn by playing. Every correct answer earns XP, and XP raises your level.</p></div>
     <div class="gm-lvl" aria-label="Your level"><div class="small" style="color:#cfe2ff">Level</div><b>${L.l}</b> <span style="font-weight:700">${L.title}</span><div class="gm-xpbar"><i style="width:${L.pct}%"></i></div><div class="small" style="color:#cfe2ff;margin-top:6px">${g.xp} XP · ${L.next > 0 ? L.next + ' XP to next level' : 'Top level!'}</div></div></div>
     <div class="gm-cards">${dailyCard()}${cards.map(([h, ic, t, d, b]) => `<a class="card gm-card" href="${h}"><span class="ic" aria-hidden="true">${ic}</span><h3>${t}</h3><p class="muted small" style="margin:0">${d}</p><span class="best">${b}</span></a>`).join('')}</div>
     <h2>Badges <span class="muted" style="font-size:18px">${g.badges.length} / ${BADGES.length}</span></h2>
@@ -420,7 +421,7 @@ function daily() {
     const st = liveStreak();
     app.innerHTML = `<div class="gm-bar">${back}${soundBtn()}</div>
       <div class="card" style="text-align:center;max-width:620px;margin:0 auto"><div style="font-size:56px">📅</div><div class="small muted" style="font-weight:700;letter-spacing:.06em">DAILY CHALLENGE #${dayNo(k)}</div><h1>Today's five</h1>
-      <p class="muted">Five questions from Chapters 1 and 2. Everyone gets the same five today, and you only get <b>one go</b>, so think before you tap. Come back tomorrow to keep your streak.</p>
+      <p class="muted">Five questions from ${chList()}. Everyone gets the same five today, and you only get <b>one go</b>, so think before you tap. Come back tomorrow to keep your streak.</p>
       <p style="font-size:20px;font-weight:700">🔥 Current streak: ${st} day${st === 1 ? '' : 's'}</p>
       <button class="btn y" id="go" style="font-size:20px;padding:14px 32px">Start today's challenge</button></div>`;
     wireSound(); $('#go').onclick = () => play(0, []);

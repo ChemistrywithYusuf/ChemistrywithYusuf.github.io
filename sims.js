@@ -273,3 +273,125 @@ SIMS.stoich = function (el, EL) {
   newQ('mass');
 };
 })();
+
+/* ======================= Chapter 3 simulations ======================= */
+(function () {
+/* ---------- bond-type meter ---------- */
+SIMS.bondtype = function (el, EL) {
+  const els = EL.filter(e => e.en != null);
+  const opt = s => els.map(e => `<option value="${e.s}"${e.s === s ? ' selected' : ''}>${e.s} – ${e.n} (${e.en})</option>`).join('');
+  el.innerHTML = `<div class="row"><label class="small">Atom 1<br><select class="sel" data-a>${opt('Na')}</select></label><label class="small">Atom 2<br><select class="sel" data-b>${opt('Cl')}</select></label></div>
+   <svg viewBox="0 0 620 120" width="100%" role="img" aria-label="Electronegativity difference meter" style="margin-top:12px">
+    <defs><linearGradient id="bt" x1="0" x2="1"><stop offset="0" stop-color="#a0c4ff"/><stop offset=".5" stop-color="#fdffb6"/><stop offset="1" stop-color="#ffb4a2"/></linearGradient></defs>
+    <rect x="20" y="40" width="580" height="26" rx="13" fill="url(#bt)"/>
+    <text x="20" y="90" font-size="13" fill="var(--mute)">0</text><text x="590" y="90" font-size="13" fill="var(--mute)">3.3</text>
+    <text x="40" y="30" font-size="13" fill="var(--ink)">non-polar</text><text x="250" y="30" font-size="13" fill="var(--ink)">polar covalent</text><text x="510" y="30" font-size="13" fill="var(--ink)">ionic</text>
+    <line x1="${20 + 580 * 1.8 / 3.3}" y1="36" x2="${20 + 580 * 1.8 / 3.3}" y2="70" stroke="var(--mute)" stroke-dasharray="3 3"/>
+    <g data-n><polygon points="0,0 -9,-14 9,-14" fill="var(--navy)"/><text y="44" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)"></text></g></svg>
+   <div class="simfb ok" data-r aria-live="polite"></div>`;
+  const a = el.querySelector('[data-a]'), b = el.querySelector('[data-b]'), n = el.querySelector('[data-n]'), r = el.querySelector('[data-r]');
+  function go() {
+    const A = els.find(e => e.s === a.value), B = els.find(e => e.s === b.value); const d = Math.abs(A.en - B.en);
+    const x = 20 + 580 * Math.min(d, 3.3) / 3.3; n.setAttribute('transform', `translate(${x},40)`); n.querySelector('text').textContent = 'Δ = ' + d.toFixed(2);
+    const type = d === 0 ? 'non-polar covalent' : d < 1.8 ? 'polar covalent' : 'ionic';
+    const neg = A.en === B.en ? null : (A.en > B.en ? A : B), pos = neg === A ? B : A;
+    r.innerHTML = `<b>${A.s}</b> ${A.en} and <b>${B.s}</b> ${B.en}: difference <b>${d.toFixed(2)}</b> → <b>${type}</b>. ` +
+      (neg ? (type === 'ionic' ? `${neg.s} gains electrons (anion); ${pos.s} loses them (cation).` : `${neg.s} is δ−, ${pos.s} is δ+.`) : 'The electrons are shared equally.') +
+      (A.s === B.s ? '' : ` <span class="small muted">The 1.8 boundary is a guide, not a sharp cut-off.</span>`);
+  }
+  a.onchange = b.onchange = go; go();
+};
+
+/* ---------- VSEPR 3D explorer ---------- */
+const S3 = Math.sqrt(3) / 2;
+const GEOM = {
+  2: [[1, 0, 0], [-1, 0, 0]],
+  3: [[0, 1, 0], [S3, -.5, 0], [-S3, -.5, 0]],
+  4: [[0, 1, 0], [.943, -.333, 0], [-.471, -.333, .816], [-.471, -.333, -.816]],
+  5: [[0, 1, 0], [0, -1, 0], [1, 0, 0], [-.5, 0, S3], [-.5, 0, -S3]],
+  6: [[0, 1, 0], [0, -1, 0], [1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1]],
+};
+const LPSLOT = { 3: [0], 4: [0, 1], 5: [2, 3, 4], 6: [0, 1] };   // where lone pairs go (equatorial for 5, opposite for 6)
+const SHAPE = {
+  '2,0': ['linear', '180°', 1], '3,0': ['trigonal planar', '120°', 1], '2,1': ['non-linear (bent)', 'about 118° (less than 120°)', 1],
+  '4,0': ['tetrahedral', '109.5°', 1], '3,1': ['pyramidal', '107°', 1], '2,2': ['non-linear (bent)', '104.5°', 1],
+  '5,0': ['trigonal bipyramidal', '120° and 90°', 1], '4,1': ['see-saw', 'about 90° and 120°', 0], '3,2': ['T-shaped', 'about 90°', 0], '2,3': ['linear', '180°', 0],
+  '6,0': ['octahedral', '90°', 1], '5,1': ['square pyramidal', 'about 90°', 0], '4,2': ['square planar', '90°', 0],
+};
+const MOLS = [['CO₂', 'C', 'O', 2, 0, 'Two C=O double bonds count as two regions.'], ['BeCl₂', 'Be', 'Cl', 2, 0, ''], ['BF₃', 'B', 'F', 3, 0, 'Boron has only 6 outer electrons.'], ['SO₂', 'S', 'O', 2, 1, 'Two S=O regions and one lone pair.'], ['CH₄', 'C', 'H', 4, 0, ''], ['NH₄⁺', 'N', 'H', 4, 0, '5 + 4 − 1 = 8 electrons.'], ['BF₄⁻', 'B', 'F', 4, 0, '3 + 4 + 1 = 8 electrons.'], ['NH₃', 'N', 'H', 3, 1, ''], ['H₃O⁺', 'O', 'H', 3, 1, '6 + 3 − 1 = 8 electrons.'], ['H₂O', 'O', 'H', 2, 2, ''], ['PF₅', 'P', 'F', 5, 0, 'Expanded octet: 10 electrons.'], ['SF₆', 'S', 'F', 6, 0, 'Expanded octet: 12 electrons.'], ['XeF₄', 'Xe', 'F', 4, 2, 'Beyond AS, for interest.']];
+SIMS.vsepr = function (el) {
+  el.innerHTML = `<div class="simgrid"><div><svg viewBox="-150 -150 300 300" width="100%" style="max-width:360px;touch-action:none;cursor:grab;display:block;margin:auto" role="img" aria-label="3D model of the molecule; drag to rotate"></svg><p class="small muted" style="text-align:center;margin:0">Drag to rotate</p></div>
+   <div><label class="small">Pick a molecule<br><select class="sel" data-m style="width:100%"><option value="">– or set pairs below –</option>${MOLS.map((m, i) => `<option value="${i}">${m[0]}</option>`).join('')}</select></label>
+   <div class="row" style="margin-top:10px"><label class="small">Bonding pairs<br><select class="sel" data-b>${[2, 3, 4, 5, 6].map(n => `<option${n === 4 ? ' selected' : ''}>${n}</option>`).join('')}</select></label>
+   <label class="small">Lone pairs<br><select class="sel" data-l>${[0, 1, 2, 3].map(n => `<option>${n}</option>`).join('')}</select></label></div>
+   <div class="simfb ok" data-o aria-live="polite"></div></div></div>`;
+  const svg = el.querySelector('svg'), mS = el.querySelector('[data-m]'), bS = el.querySelector('[data-b]'), lS = el.querySelector('[data-l]'), out = el.querySelector('[data-o]');
+  let rx = -0.3, ry = 0.35, cen = 'X', ter = 'Y', note = '', drag = null, spin = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const rot = ([x, y, z]) => { let c = Math.cos(ry), s = Math.sin(ry); [x, z] = [x * c + z * s, -x * s + z * c]; c = Math.cos(rx); s = Math.sin(rx); [y, z] = [y * c - z * s, y * s + z * c]; return [x, y, z] };
+  function domains() {
+    const bp = +bS.value, lp = +lS.value, n = bp + lp; if (n < 2 || n > 6 || !GEOM[n]) return null;
+    const g = GEOM[n], ls = (LPSLOT[n] || []).slice(0, lp); if (ls.length < lp) return null;
+    return g.map((v, i) => ({ v, lone: ls.includes(i) }));
+  }
+  function draw() {
+    const D = domains(); const key = bS.value + ',' + lS.value; const sh = SHAPE[key];
+    if (!D || !sh) { svg.innerHTML = `<text x="0" y="0" text-anchor="middle" fill="var(--mute)" font-size="14">Choose 2–6 electron pairs in total</text>`; out.className = 'simfb bad'; out.innerHTML = 'That combination is not covered: choose between 2 and 6 pairs in total.'; return }
+    const R = 105, items = [];
+    D.forEach(d => { const p = rot(d.v); items.push({ z: p[2], d, p }) });
+    items.sort((a, b) => a.z - b.z);
+    let g = '';
+    const back = items.filter(i => i.z < 0), front = items.filter(i => i.z >= 0);
+    const bond = i => `<line x1="0" y1="0" x2="${i.p[0] * R}" y2="${-i.p[1] * R}" stroke="var(--mute)" stroke-width="${6 + i.z * 2}" stroke-linecap="round"/>`;
+    const atom = i => { const s = 1 + i.z * .18; return i.d.lone ? `<g opacity=".75"><ellipse cx="${i.p[0] * R * .62}" cy="${-i.p[1] * R * .62}" rx="${17 * s}" ry="${11 * s}" fill="#fde68a" stroke="#d97706" transform="rotate(${Math.atan2(-i.p[1], i.p[0]) * 180 / Math.PI} ${i.p[0] * R * .62} ${-i.p[1] * R * .62})"/><circle cx="${i.p[0] * R * .62 - 4}" cy="${-i.p[1] * R * .62}" r="2.6" fill="#92400e"/><circle cx="${i.p[0] * R * .62 + 4}" cy="${-i.p[1] * R * .62}" r="2.6" fill="#92400e"/></g>`
+      : `<circle cx="${i.p[0] * R}" cy="${-i.p[1] * R}" r="${20 * s}" fill="#a0c4ff" stroke="#1d4ed8" stroke-width="1.5"/><text x="${i.p[0] * R}" y="${-i.p[1] * R + 5}" text-anchor="middle" font-size="${14 * s}" font-weight="700" fill="#0b1636">${ter}</text>` };
+    back.forEach(i => { if (!i.d.lone) g += bond(i) }); back.forEach(i => g += atom(i));
+    g += `<circle cx="0" cy="0" r="26" fill="#22c8f2" stroke="#0b7ea3" stroke-width="2"/><text x="0" y="6" text-anchor="middle" font-size="17" font-weight="800" fill="#0b1636">${cen}</text>`;
+    front.forEach(i => { if (!i.d.lone) g += bond(i) }); front.forEach(i => g += atom(i));
+    svg.innerHTML = g;
+    out.className = 'simfb ok';
+    out.innerHTML = `<b>${bS.value}</b> bonding pair${bS.value > 1 ? 's' : ''} + <b>${lS.value}</b> lone pair${lS.value == 1 ? '' : 's'} = ${+bS.value + +lS.value} regions<br>Shape: <b>${sh[0]}</b><br>Bond angle: <b>${sh[1]}</b>${sh[2] ? '' : '<br><span class="small muted">This shape goes beyond the AS examples, but you can predict it with the same rules.</span>'}${note ? `<br><span class="small">${note}</span>` : ''}<br><span class="small muted">Lone pairs (yellow) repel more than bonding pairs, so they squeeze the bond angles.</span>`;
+  }
+  mS.onchange = () => { const m = MOLS[mS.value]; if (m) { cen = m[1]; ter = m[2]; bS.value = m[3]; lS.value = m[4]; note = m[5] } draw() };
+  bS.onchange = lS.onchange = () => { mS.value = ''; cen = 'X'; ter = 'Y'; note = ''; draw() };
+  svg.addEventListener('pointerdown', e => { drag = [e.clientX, e.clientY, rx, ry]; spin = false; svg.setPointerCapture(e.pointerId); svg.style.cursor = 'grabbing' });
+  svg.addEventListener('pointermove', e => { if (!drag) return; ry = drag[3] + (e.clientX - drag[0]) / 80; rx = drag[2] + (e.clientY - drag[1]) / 80; draw() });
+  svg.addEventListener('pointerup', () => { drag = null; svg.style.cursor = 'grab' });
+  (function tick() { if (!el.isConnected) return; if (spin) { ry += 0.01; draw() } requestAnimationFrame(tick) })();
+  mS.value = '4'; mS.onchange();
+};
+
+/* ---------- intermolecular forces sorter ---------- */
+const IMF = [
+  ['helium, He', 0, 0, 'A single atom with no dipole: only id-id forces.'],
+  ['methane, CH₄', 0, 0, 'C–H bonds are almost non-polar and the molecule is symmetrical.'],
+  ['tetrachloromethane, CCl₄', 0, 0, 'The C–Cl bonds are polar, but the tetrahedral shape cancels the dipoles.'],
+  ['carbon dioxide, CO₂', 0, 0, 'Linear: the two C=O dipoles cancel.'],
+  ['hydrogen chloride, HCl', 1, 0, 'Polar molecule (Cl is δ−), but Cl is not N, O or F, so no hydrogen bonding.'],
+  ['propanone, CH₃COCH₃', 1, 0, 'Polar C=O, but no H bonded to O, so no hydrogen bonding between propanone molecules.'],
+  ['trichloromethane, CHCl₃', 1, 0, 'The dipoles do not cancel, so pd-pd forces act. No N–H, O–H or H–F.'],
+  ['methoxymethane, CH₃OCH₃', 1, 0, 'Polar (bent C–O–C), but every H is bonded to carbon, so it cannot hydrogen bond with itself.'],
+  ['water, H₂O', 1, 1, 'O–H bonds and two lone pairs on O: hydrogen bonding (plus id-id; hydrogen bonds are a strong type of permanent dipole attraction).'],
+  ['ammonia, NH₃', 1, 1, 'N–H bonds and a lone pair on N: hydrogen bonding.'],
+  ['methanol, CH₃OH', 1, 1, 'Has an O–H group: hydrogen bonding.'],
+  ['hydrogen fluoride, HF', 1, 1, 'H bonded to F, which has lone pairs: hydrogen bonding.'],
+];
+SIMS.imf = function (el) {
+  let order = IMF.map((_, i) => i).sort(() => Math.random() - .5), k = 0, ok = 0, done = 0;
+  el.innerHTML = `<div class="card" style="box-shadow:none"><p class="small muted" style="margin:0">Substance <b data-k></b> of ${IMF.length} · score <b data-s>0</b></p><h3 data-n style="margin:6px 0 10px"></h3>
+   <div style="display:grid;gap:8px"><label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" data-f="0" style="width:22px;height:22px;flex:none;margin:1px 0 0"><span> instantaneous dipole–induced dipole (id-id)</span></label>
+   <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" data-f="1" style="width:22px;height:22px;flex:none;margin:1px 0 0"><span> permanent dipole–permanent dipole (pd-pd)</span></label>
+   <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" data-f="2" style="width:22px;height:22px;flex:none;margin:1px 0 0"><span> hydrogen bonding</span></label></div>
+   <div class="row" style="margin-top:10px"><button class="btn y" data-c>Check</button><button class="btn alt" data-x>Next substance</button></div><div class="simfb" data-o aria-live="polite"></div></div>`;
+  const q = s => el.querySelector(s), boxes = [...el.querySelectorAll('[data-f]')];
+  function show() { const it = IMF[order[k]]; q('[data-k]').textContent = k + 1; q('[data-n]').textContent = it[0]; boxes.forEach(b => { b.checked = false; b.disabled = false }); q('[data-o]').className = 'simfb'; q('[data-o]').innerHTML = ''; q('[data-c]').disabled = false }
+  q('[data-c]').onclick = () => {
+    const it = IMF[order[k]], want = [1, it[2] || it[1] ? 1 : 0, it[2]]; const got = boxes.map(b => b.checked ? 1 : 0);
+    const right = want.every((w, i) => w === got[i]); done++; if (right) ok++; q('[data-s]').textContent = `${ok}/${done}`;
+    boxes.forEach(b => b.disabled = true); q('[data-c]').disabled = true;
+    const names = ['id-id', 'pd-pd', 'hydrogen bonding']; const list = names.filter((_, i) => want[i]).join(', ');
+    q('[data-o]').className = 'simfb ' + (right ? 'ok' : 'bad'); q('[data-o]').innerHTML = `${right ? '✔ Correct.' : '✘ Not quite.'} Forces present: <b>${list}</b>. ${it[3]}${!want[0] ? '' : ' <span class="small muted">Id-id forces act between all molecules.</span>'}`;
+  };
+  q('[data-x]').onclick = () => { k = (k + 1) % IMF.length; if (k === 0) order = order.sort(() => Math.random() - .5); show() };
+  show();
+};
+})();
