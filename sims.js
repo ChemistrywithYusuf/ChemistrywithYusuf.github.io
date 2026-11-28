@@ -628,4 +628,192 @@ SIMS.balance = function (el) {
   function show() { const r = RB[+q('[data-r]').value]; q('[data-st]').innerHTML = r.s.slice(0, k).map(x => `<li>${x}</li>`).join(''); q('[data-n]').disabled = k >= r.s.length }
   q('[data-r]').onchange = () => { k = 0; show() }; q('[data-n]').onclick = () => { k++; show() }; q('[data-a]').onclick = () => { k = 99; show() }; show();
 };
+
+/* ---------------- Chapter 7: Le Chatelier explorer ---------------- */
+const LC = [
+ { eq: 'N₂(g) + 3H₂(g) ⇌ 2NH₃(g)', dh: -92, gl: 4, gr: 2, sp: ['N₂', 'H₂', 'NH₃'], st: [1, 3, 0.6], side: [-1, -1, 1] },
+ { eq: '2SO₂(g) + O₂(g) ⇌ 2SO₃(g)', dh: -197, gl: 3, gr: 2, sp: ['SO₂', 'O₂', 'SO₃'], st: [0.6, 0.5, 1.4], side: [-1, -1, 1] },
+ { eq: 'N₂O₄(g) ⇌ 2NO₂(g)', dh: 58, gl: 1, gr: 2, sp: ['N₂O₄', 'NO₂'], st: [1, 0.5], side: [-1, 1] },
+ { eq: 'H₂(g) + I₂(g) ⇌ 2HI(g)', dh: -9.6, gl: 2, gr: 2, sp: ['H₂', 'I₂', 'HI'], st: [0.4, 0.4, 1.6], side: [-1, -1, 1] },
+ { eq: 'CH₄(g) + H₂O(g) ⇌ CO(g) + 3H₂(g)', dh: 206, gl: 2, gr: 4, sp: ['CH₄', 'H₂O', 'CO', 'H₂'], st: [0.8, 0.8, 0.3, 0.9], side: [-1, -1, 1, 1] },
+];
+SIMS.lechat = function (el) {
+  const CH = [['temperature up', 'T+'], ['temperature down', 'T-'], ['pressure up (smaller volume)', 'P+'], ['pressure down', 'P-'], ['add a catalyst', 'C'], ['add more of the first reactant', 'R+'], ['remove product', 'X-']];
+  el.innerHTML = `<div class="row" style="flex-wrap:wrap;gap:6px"><select class="sel" data-r style="flex:1;min-width:220px">${LC.map((r, i) => `<option value="${i}">${r.eq}</option>`).join('')}</select>
+   <select class="sel" data-c style="flex:1;min-width:200px">${CH.map(c => `<option value="${c[1]}">${c[0]}</option>`).join('')}</select><button class="btn y" data-go>Apply</button></div>
+   <p class="small muted" data-dh style="margin:6px 0"></p><div data-bars style="display:grid;gap:6px;margin:8px 0"></div><div class="simfb" data-o></div>`;
+  const q = s => el.querySelector(s);
+  function bars(a, b) {
+    const r = LC[+q('[data-r]').value], mx = Math.max(...a, ...(b || a)) * 1.1;
+    q('[data-bars]').innerHTML = r.sp.map((s, i) => `<div style="display:grid;grid-template-columns:60px 1fr;gap:8px;align-items:center"><b>${s}</b><div><div style="height:12px;border-radius:6px;background:#9fb6c8;width:${a[i] / mx * 100}%"></div>${b ? `<div style="height:12px;margin-top:3px;border-radius:6px;background:${r.side[i] > 0 ? '#2e9e5b' : '#e0890b'};width:${b[i] / mx * 100}%;transition:width .6s"></div>` : ''}</div></div>`).join('') + (b ? '<p class="small muted" style="margin:0">grey: before · coloured: new equilibrium (amounts)</p>' : '');
+  }
+  function reset() { const r = LC[+q('[data-r]').value]; q('[data-dh]').innerHTML = `ΔH = ${r.dh > 0 ? '+' : ''}${r.dh} kJ mol⁻¹ (${r.dh > 0 ? 'endothermic' : 'exothermic'} forward) · gas moles: ${r.gl} on the left, ${r.gr} on the right`; q('[data-o]').className = 'simfb'; q('[data-o]').innerHTML = ''; bars(r.st) }
+  q('[data-r]').onchange = reset;
+  q('[data-go]').onclick = () => {
+    const r = LC[+q('[data-r]').value], c = q('[data-c]').value; let dir = 0, why = '', K = 'K is unchanged (only temperature changes K).';
+    if (c === 'T+' || c === 'T-') { const up = c === 'T+'; dir = (r.dh > 0) === up ? 1 : -1; why = `${up ? 'Raising' : 'Lowering'} the temperature favours the <b>${up ? 'endothermic' : 'exothermic'}</b> direction, which is the <b>${dir > 0 ? 'forward' : 'reverse'}</b> reaction here.`; K = `K <b>${dir > 0 ? 'increases' : 'decreases'}</b>, because temperature is the only thing that changes K.` }
+    if (c === 'P+' || c === 'P-') { const up = c === 'P+'; if (r.gl === r.gr) { dir = 0; why = 'Both sides have the same number of gas molecules, so changing the pressure does not move the equilibrium (both concentrations change by the same factor).' } else { const fewer = r.gr < r.gl ? 1 : -1; dir = up ? fewer : -fewer; why = `${up ? 'Higher' : 'Lower'} pressure favours the side with <b>${up ? 'fewer' : 'more'}</b> gas molecules, which is the <b>${dir > 0 ? 'right' : 'left'}</b>.` } }
+    if (c === 'C') { dir = 0; why = 'A catalyst speeds up the forward and reverse reactions equally. Equilibrium is reached sooner, but the position does not change.' }
+    if (c === 'R+') { dir = 1; why = `Adding ${r.sp[0]} increases a reactant concentration, so the equilibrium shifts <b>right</b> to use some of it up.` }
+    if (c === 'X-') { dir = 1; why = `Removing ${r.sp[r.sp.length - 1]} lowers a product concentration, so the equilibrium shifts <b>right</b> to replace some of it.` }
+    const nw = r.st.map((v, i) => Math.max(0.05, v * (1 + 0.35 * dir * r.side[i]) + (c === 'R+' && i === 0 ? 0.4 : 0) - (c === 'X-' && i === r.sp.length - 1 ? 0.25 * v : 0)));
+    bars(r.st, nw); q('[data-o]').className = 'simfb ok'; q('[data-o]').innerHTML = `<b>${dir > 0 ? '→ Shifts to the right' : dir < 0 ? '← Shifts to the left' : '⇌ No shift in position'}</b><br>${why}<br>${K}`;
+  };
+  reset();
+};
+
+/* ---------------- Chapter 7: equilibrium (ICE) table solver ---------------- */
+SIMS.ice = function (el) {
+  const R = [
+   { eq: 'H₂ + I₂ ⇌ 2HI (g)', sp: ['H₂', 'I₂', 'HI'], n: [-1, -1, 2], st: [1.0, 1.0, 0], k: 2, v: 1.6, gas: true },
+   { eq: 'N₂ + 3H₂ ⇌ 2NH₃ (g)', sp: ['N₂', 'H₂', 'NH₃'], n: [-1, -3, 2], st: [1.0, 3.0, 0], k: 2, v: 0.6, gas: true },
+   { eq: '2SO₂ + O₂ ⇌ 2SO₃ (g)', sp: ['SO₂', 'O₂', 'SO₃'], n: [-2, -1, 2], st: [2.0, 1.2, 0], k: 2, v: 1.8, gas: true },
+   { eq: 'N₂O₄ ⇌ 2NO₂ (g)', sp: ['N₂O₄', 'NO₂'], n: [-1, 2], st: [1.0, 0], k: 1, v: 0.8, gas: true },
+   { eq: 'CH₃COOH + C₂H₅OH ⇌ CH₃COOC₂H₅ + H₂O (l)', sp: ['acid', 'alcohol', 'ester', 'water'], n: [-1, -1, 1, 1], st: [1.0, 1.0, 0, 0], k: 2, v: 0.667, gas: false },
+  ];
+  el.innerHTML = `<select class="sel" data-r style="width:100%">${R.map((r, i) => `<option value="${i}">${r.eq}</option>`).join('')}</select>
+   <div data-in class="row" style="flex-wrap:wrap;gap:8px;margin-top:8px"></div><div style="overflow-x:auto"><table class="t" style="margin-top:8px"><tbody data-tb></tbody></table></div><div class="simfb ok" data-w></div>`;
+  const q = s => el.querySelector(s), f = x => (+x.toPrecision(3)).toString();
+  function build() {
+    const r = R[+q('[data-r]').value];
+    q('[data-in]').innerHTML = r.sp.map((s, i) => `<label class="small">initial ${s} / mol <input class="sel" type="number" step="any" min="0" data-st="${i}" value="${r.st[i]}" style="width:80px"></label>`).join('') +
+      `<label class="small">equilibrium ${r.sp[r.k]} / mol <input class="sel" type="number" step="any" min="0" data-eqv value="${r.v}" style="width:80px"></label><label class="small">volume / dm³ <input class="sel" type="number" step="any" min="0.01" data-vol value="1.0" style="width:70px"></label>` +
+      (r.gas ? `<label class="small">total pressure / kPa <input class="sel" type="number" step="any" min="1" data-p value="200" style="width:80px"></label>` : '');
+    q('[data-in]').querySelectorAll('input').forEach(x => x.addEventListener('input', go)); go();
+  }
+  function go() {
+    const r = R[+q('[data-r]').value], st = r.sp.map((_, i) => +q(`[data-st="${i}"]`).value), ev = +q('[data-eqv]').value, V = +q('[data-vol]').value;
+    const x = (ev - st[r.k]) / r.n[r.k], eqm = st.map((s, i) => s + r.n[i] * x);
+    q('[data-tb]').innerHTML = `<tr><th></th>${r.sp.map(s => `<th>${s}</th>`).join('')}</tr><tr><td>initial / mol</td>${st.map(v => `<td>${f(v)}</td>`).join('')}</tr><tr><td>change / mol</td>${r.n.map(n => `<td>${n * x > 0 ? '+' : ''}${f(n * x)}</td>`).join('')}</tr><tr><td><b>equilibrium / mol</b></td>${eqm.map(v => `<td><b>${f(v)}</b></td>`).join('')}</tr><tr><td>concentration / mol dm⁻³</td>${eqm.map(v => `<td>${f(v / V)}</td>`).join('')}</tr>`;
+    if (eqm.some(v => v < -1e-9)) { q('[data-w]').className = 'simfb bad'; q('[data-w]').textContent = 'That equilibrium amount is impossible: a reactant would go below zero.'; return }
+    const term = (i, val) => `${val}${Math.abs(r.n[i]) > 1 ? '<sup>' + Math.abs(r.n[i]) + '</sup>' : ''}`;
+    const c = eqm.map(v => v / V), top = r.n.map((n, i) => n > 0 ? c[i] ** n : 1).reduce((a, b) => a * b, 1), bot = r.n.map((n, i) => n < 0 ? c[i] ** -n : 1).reduce((a, b) => a * b, 1);
+    const dn = r.n.reduce((a, b) => a + b, 0), units = dn === 0 ? 'no units' : `(mol dm⁻³)${dn === 1 ? '' : '<sup>' + dn + '</sup>'}`.replace('(mol dm⁻³)<sup>-1</sup>', 'dm³ mol⁻¹').replace('(mol dm⁻³)<sup>-2</sup>', 'dm⁶ mol⁻²');
+    let out = `K<sub>c</sub> = ${r.n.map((n, i) => n > 0 ? term(i, '[' + r.sp[i] + ']') : '').join('')} / ${r.n.map((n, i) => n < 0 ? term(i, '[' + r.sp[i] + ']') : '').join('')}<br>= ${r.n.map((n, i) => n > 0 ? term(i, '(' + f(c[i]) + ')') : '').filter(Boolean).join(' × ')} / ${r.n.map((n, i) => n < 0 ? term(i, '(' + f(c[i]) + ')') : '').filter(Boolean).join(' × ')}<br>= <b>${f(top / bot)}</b> ${units}`;
+    if (r.gas) {
+      const P = +q('[data-p]').value, tot = eqm.reduce((a, b) => a + b, 0), pp = eqm.map(v => v / tot * P);
+      const kp = r.n.map((n, i) => pp[i] ** n).reduce((a, b) => a * b, 1);
+      out += `<hr style="border:none;border-top:1px solid var(--line,#ddd)">total = ${f(tot)} mol; mole fractions: ${r.sp.map((s, i) => `${s} ${f(eqm[i] / tot)}`).join(', ')}<br>partial pressures (= mole fraction × ${P} kPa): ${r.sp.map((s, i) => `${s} ${f(pp[i])}`).join(', ')}<br>K<sub>p</sub> = <b>${f(kp)}</b> ${dn === 0 ? 'no units' : 'kPa' + (dn === 1 ? '' : '<sup>' + dn + '</sup>')}`;
+    }
+    q('[data-w]').className = 'simfb ok'; q('[data-w]').innerHTML = out;
+  }
+  q('[data-r]').onchange = build; build();
+};
+
+/* ---------------- Chapter 8: Boltzmann distribution lab ---------------- */
+SIMS.boltz = function (el) {
+  el.innerHTML = `<div class="simgrid"><div><svg class="bzsvg" viewBox="0 0 440 290" width="100%" style="max-width:460px;background:var(--card2,#f4f8fb);border-radius:12px" font-family="Inter" font-size="12"></svg></div>
+   <div><label class="small">Temperature: <b data-o="T"></b> K</label><input type="range" data-s="T" min="250" max="700" step="10" value="300" style="width:100%">
+   <label style="display:flex;gap:8px;align-items:center;margin:6px 0;cursor:pointer"><input type="checkbox" data-ref checked style="width:20px;height:20px"> keep a 300 K reference curve</label>
+   <label class="small">E<sub>a</sub>: <b data-o="ea"></b> kJ mol⁻¹</label><input type="range" data-s="ea" min="5" max="14" step="0.5" value="9" style="width:100%">
+   <label style="display:flex;gap:8px;align-items:center;margin:6px 0;cursor:pointer"><input type="checkbox" data-cat style="width:20px;height:20px"> add a catalyst (lowers E<sub>a</sub> by 40%)</label>
+   <div class="simfb ok" data-out></div></div></div>`;
+  const q = s => el.querySelector(s), sv = q('.bzsvg'), R = 8.31e-3, EMAX = 16;
+  const f = (E, T) => 2 * Math.sqrt(E / Math.PI) * Math.pow(1 / (R * T), 1.5) * Math.exp(-E / (R * T));   // Maxwell–Boltzmann energy distribution
+  const frac = (Ea, T) => { let s = 0, d = 0.02; for (let E = Ea; E < 200; E += d) s += f(E, T) * d; return s };
+  function draw() {
+    const T = +q('[data-s=T]').value, ea0 = +q('[data-s=ea]').value, cat = q('[data-cat]').checked, ea = cat ? ea0 * 0.6 : ea0;
+    q('[data-o=T]').textContent = T; q('[data-o=ea]').textContent = ea0;
+    const X = E => 30 + E / EMAX * 395, ymax = f(R * 250 / 2, 250) * 1.08, Y = v => 260 - v / ymax * 240;
+    const path = (T, n = 180) => { let d = ''; for (let i = 0; i <= n; i++) { const E = i / n * EMAX; d += (i ? 'L' : 'M') + X(E).toFixed(1) + ' ' + Y(f(E, T)).toFixed(1) } return d };
+    let area = `M${X(ea)} 260`; for (let i = 0; i <= 80; i++) { const E = ea + i / 80 * (EMAX - ea); area += `L${X(E).toFixed(1)} ${Y(f(E, T)).toFixed(1)}` } area += `L${X(EMAX)} 260Z`;
+    sv.innerHTML = `<line x1="30" y1="260" x2="430" y2="260" stroke="#667"/><line x1="30" y1="10" x2="30" y2="260" stroke="#667"/>
+     <text x="230" y="282" text-anchor="middle" fill="#556">energy</text><text x="14" y="140" transform="rotate(-90 14 140)" text-anchor="middle" fill="#556">number of molecules</text>
+     <path d="${area}" fill="#ffd23f" opacity=".55"/>
+     ${q('[data-ref]').checked && T !== 300 ? `<path d="${path(300)}" fill="none" stroke="#9aa6b2" stroke-width="2" stroke-dasharray="6 4"/>` : ''}
+     <path d="${path(T)}" fill="none" stroke="#0b7ea3" stroke-width="3"/>
+     <line x1="${X(ea0)}" y1="20" x2="${X(ea0)}" y2="260" stroke="#c0392b" stroke-width="2"/><text x="${X(ea0) + 4}" y="30" fill="#c0392b">E<tspan font-size="9" dy="3">a</tspan></text>
+     ${cat ? `<line x1="${X(ea)}" y1="40" x2="${X(ea)}" y2="260" stroke="#e0890b" stroke-width="2" stroke-dasharray="5 4"/><text x="${X(ea) + 4}" y="50" fill="#e0890b">E<tspan font-size="9" dy="3">a</tspan><tspan dy="-3">(cat)</tspan></text>` : ''}`;
+    const p = frac(ea, T), p300 = frac(ea0, 300);
+    q('[data-out]').innerHTML = `Shaded area: <b>${(p * 100).toPrecision(2)}%</b> of molecules have E ≥ E<sub>a</sub>.<br>Compared with 300 K and no catalyst: about <b>${p / p300 >= 100 ? Math.round(p / p300) : (p / p300).toPrecision(2)} ×</b> as many can react.<br><span class="small muted">The area under every curve is the same (same number of molecules). A catalyst moves E<sub>a</sub>, not the curve.</span>`;
+  }
+  el.querySelectorAll('input').forEach(i => i.addEventListener('input', draw)); draw();
+};
+
+/* ---------------- Chapter 8: rate experiment (gas volume v time) ---------------- */
+SIMS.rateexp = function (el) {
+  el.innerHTML = `<p class="small muted" style="margin:0 0 6px">Marble chips with 50 cm³ of 1.0 mol dm⁻³ HCl at 20 °C (grey). The acid is the limiting reactant.</p>
+   <div class="simgrid"><div><svg class="rxsvg" viewBox="0 0 420 270" width="100%" style="max-width:440px;background:var(--card2,#f4f8fb);border-radius:12px" font-family="Inter" font-size="12"></svg></div>
+   <div><label class="small">acid concentration: <b data-o="c"></b> mol dm⁻³</label><input type="range" data-s="c" min="0.5" max="2" step="0.25" value="1" style="width:100%">
+   <label class="small">temperature: <b data-o="t"></b> °C</label><input type="range" data-s="t" min="10" max="50" step="5" value="20" style="width:100%">
+   <label class="small">chip size</label><select class="sel" data-s="z" style="width:100%"><option value="1">large chips</option><option value="2.5" >small chips</option><option value="6">powder</option></select>
+   <label style="display:flex;gap:8px;align-items:center;margin:6px 0"><input type="checkbox" data-add style="width:20px;height:20px"> double the volume of acid (100 cm³)</label>
+   <div class="simfb ok" data-out></div></div></div>`;
+  const q = s => el.querySelector(s), sv = q('.rxsvg');
+  const run = (c, t, z, v) => { const nCO2 = c * v / 1000 / 2, Vmax = nCO2 * 24000, k = 0.012 * c * z * Math.pow(2, (t - 20) / 10); return { Vmax, k } };
+  function draw() {
+    const c = +q('[data-s=c]').value, t = +q('[data-s=t]').value, z = +q('[data-s=z]').value, v = q('[data-add]').checked ? 100 : 50;
+    q('[data-o=c]').textContent = c; q('[data-o=t]').textContent = t;
+    const a = run(1, 20, 1, 50), b = run(c, t, z, v), X = s => 58 + s / 300 * 352, Y = V => 245 - V / 2400 * 225;
+    const curve = r => { let d = ''; for (let s = 0; s <= 300; s += 5) d += (s ? 'L' : 'M') + X(s) + ' ' + Y(r.Vmax * (1 - Math.exp(-r.k * s))).toFixed(1); return d };
+    sv.innerHTML = `<line x1="58" y1="245" x2="415" y2="245" stroke="#667"/><line x1="58" y1="15" x2="58" y2="245" stroke="#667"/>
+     ${[0, 100, 200, 300].map(s => `<text x="${X(s)}" y="260" text-anchor="middle" fill="#667">${s}</text>`).join('')}${[0, 600, 1200, 1800, 2400].map(V => `<text x="53" y="${Y(V) + 4}" text-anchor="end" fill="#667">${V}</text>`).join('')}
+     <text x="236" y="268" text-anchor="middle" fill="#556" font-size="11">time / s</text><text x="12" y="130" transform="rotate(-90 12 130)" text-anchor="middle" fill="#556">volume CO₂ / cm³</text>
+     <path d="${curve(a)}" fill="none" stroke="#9aa6b2" stroke-width="3"/><path d="${curve(b)}" fill="none" stroke="#0b7ea3" stroke-width="3"/>`;
+    const r0 = (b.Vmax * b.k / (a.Vmax * a.k));
+    q('[data-out]').innerHTML = `Initial rate: <b>${(b.Vmax * b.k).toFixed(1)} cm³ s⁻¹</b> (${r0.toPrecision(2)} × experiment 1).<br>Final volume: <b>${Math.round(b.Vmax)} cm³</b> ${Math.abs(b.Vmax - a.Vmax) < 1 ? '(same: same amount of acid)' : '(different: the amount of acid changed)'}.<br><span class="small muted">Steeper start = faster. The final volume depends only on the amount of the limiting reactant.</span>`;
+  }
+  el.querySelectorAll('input,select').forEach(i => i.addEventListener('input', draw)); draw();
+};
+
+/* ---------------- Chapter 9: Period 3 explorer ---------------- */
+const P3 = [
+ { s: 'Na', r: 0.186, ion: 'Na⁺ 0.102', mp: 371, en: 0.93, ie: 496, cond: 21, st: 'giant metallic', ox: 'Na₂O', oxs: 'giant ionic; basic', oxw: 'Na₂O + H₂O → 2NaOH (pH 13–14)', cl: 'NaCl', cls: 'giant ionic', clw: 'dissolves, no hydrolysis (pH 7)', w: 'reacts vigorously with cold water: 2Na + 2H₂O → 2NaOH + H₂' },
+ { s: 'Mg', r: 0.160, ion: 'Mg²⁺ 0.072', mp: 923, en: 1.31, ie: 738, cond: 23, st: 'giant metallic', ox: 'MgO', oxs: 'giant ionic; basic', oxw: 'slightly soluble: MgO + H₂O → Mg(OH)₂ (pH about 9)', cl: 'MgCl₂', cls: 'giant ionic', clw: 'dissolves, very slight hydrolysis (pH about 6.5)', w: 'very slow with cold water; burns in steam: Mg + H₂O → MgO + H₂' },
+ { s: 'Al', r: 0.143, ion: 'Al³⁺ 0.053', mp: 933, en: 1.61, ie: 578, cond: 38, st: 'giant metallic', ox: 'Al₂O₃', oxs: 'giant (ionic with covalent character); amphoteric', oxw: 'insoluble; reacts with HCl and with NaOH', cl: 'AlCl₃ (Al₂Cl₆)', cls: 'covalent, simple molecular dimer', clw: 'hydrolysed: fumes of HCl, solution pH about 3', w: 'protected by its oxide layer' },
+ { s: 'Si', r: 0.117, ion: '—', mp: 1687, en: 1.90, ie: 787, cond: 0.002, st: 'giant covalent', ox: 'SiO₂', oxs: 'giant covalent; acidic', oxw: 'insoluble; reacts with hot concentrated NaOH', cl: 'SiCl₄', cls: 'simple molecular (liquid)', clw: 'hydrolysed: SiCl₄ + 2H₂O → SiO₂ + 4HCl (pH about 2)', w: 'no reaction' },
+ { s: 'P', r: 0.110, ion: 'P³⁻ 0.212', mp: 317, en: 2.19, ie: 1012, cond: 0, st: 'simple molecular (P₄)', ox: 'P₄O₁₀', oxs: 'simple molecular; acidic', oxw: 'P₄O₁₀ + 6H₂O → 4H₃PO₄ (pH about 2)', cl: 'PCl₅ (and PCl₃)', cls: 'simple molecular', clw: 'hydrolysed: PCl₅ + 4H₂O → H₃PO₄ + 5HCl (pH about 2)', w: 'no reaction' },
+ { s: 'S', r: 0.104, ion: 'S²⁻ 0.184', mp: 388, en: 2.58, ie: 1000, cond: 0, st: 'simple molecular (S₈)', ox: 'SO₂, SO₃', oxs: 'simple molecular; acidic', oxw: 'SO₂ + H₂O → H₂SO₃; SO₃ + H₂O → H₂SO₄ (pH about 1–2)', cl: '—', cls: '—', clw: '—', w: 'no reaction' },
+ { s: 'Cl', r: 0.099, ion: 'Cl⁻ 0.180', mp: 172, en: 3.16, ie: 1251, cond: 0, st: 'simple molecular (Cl₂)', ox: '—', oxs: '—', oxw: '—', cl: '—', cls: '—', clw: '—', w: 'Cl₂ + H₂O ⇌ HCl + HClO' },
+ { s: 'Ar', r: 0.071, ion: '—', mp: 84, en: 0, ie: 1521, cond: 0, st: 'single atoms', ox: '—', oxs: '—', oxw: '—', cl: '—', cls: '—', clw: '—', w: 'unreactive' },
+];
+SIMS.period3 = function (el) {
+  const PR = [['mp', 'melting point / K'], ['r', 'atomic radius / nm'], ['ie', 'first ionisation energy / kJ mol⁻¹'], ['en', 'electronegativity (Pauling)'], ['cond', 'electrical conductivity / 10⁶ S m⁻¹']];
+  el.innerHTML = `<div class="row" style="flex-wrap:wrap;gap:6px">${PR.map((p, i) => `<button class="btn ${i ? 'alt' : 'y'}" data-pr="${p[0]}">${p[1].split(' /')[0].replace(' (Pauling)', '')}</button>`).join('')}</div>
+   <div data-ch style="display:flex;align-items:flex-end;gap:6px;height:190px;margin:12px 0 4px;padding:0 4px;border-bottom:2px solid #9aa6b2"></div>
+   <div style="display:flex;gap:6px;padding:0 4px">${P3.map((e, i) => `<button class="btn alt" data-el="${i}" style="flex:1;min-width:0;padding:6px 0">${e.s}</button>`).join('')}</div>
+   <p class="small muted" data-lab style="margin:6px 0"></p><div class="simfb ok" data-card></div>`;
+  const q = s => el.querySelector(s); let prop = 'mp', sel = 0;
+  function chart() {
+    const lab = PR.find(p => p[0] === prop)[1], vals = P3.map(e => e[prop]), mx = Math.max(...vals);
+    q('[data-lab]').textContent = lab + (prop === 'en' ? ' (no value for Ar)' : '');
+    q('[data-ch]').innerHTML = P3.map((e, i) => `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%"><span class="small" style="font-size:11px">${e[prop] || ''}</span><div style="width:80%;height:${Math.max(1, e[prop] / mx * 160)}px;border-radius:6px 6px 0 0;background:${i === sel ? '#ffd23f' : '#0b7ea3'};transition:height .4s"></div></div>`).join('');
+    el.querySelectorAll('[data-pr]').forEach(b => b.className = 'btn ' + (b.dataset.pr === prop ? 'y' : 'alt'));
+  }
+  function card() { const e = P3[sel]; q('[data-card]').innerHTML = `<b style="font-size:18px">${e.s}</b> · structure: <b>${e.st}</b> · ion (radius / nm): ${e.ion}<br><b>with water:</b> ${e.w}<br><b>oxide:</b> ${e.ox} (${e.oxs}) — ${e.oxw}<br><b>chloride:</b> ${e.cl} (${e.cls}) — ${e.clw}`; chart() }
+  el.querySelectorAll('[data-pr]').forEach(b => b.onclick = () => { prop = b.dataset.pr; chart() });
+  el.querySelectorAll('[data-el]').forEach(b => b.onclick = () => { sel = +b.dataset.el; card() });
+  card();
+};
+
+/* ---------------- Chapter 9: mystery compound game ---------------- */
+const P3Q = [
+ ['A white solid oxide. It dissolves in water to give a solution of pH 14.', 'Na₂O', ['Na₂O', 'MgO', 'Al₂O₃', 'P₄O₁₀']],
+ ['A white oxide, insoluble in water, that dissolves in both HCl(aq) and NaOH(aq).', 'Al₂O₃', ['MgO', 'Al₂O₃', 'SiO₂', 'Na₂O']],
+ ['A colourless liquid chloride. With water it fumes and leaves a white solid.', 'SiCl₄', ['PCl₅', 'SiCl₄', 'AlCl₃', 'NaCl']],
+ ['A white ionic chloride. Its solution has pH 7 and gives no precipitate with NaOH(aq).', 'NaCl', ['NaCl', 'MgCl₂', 'AlCl₃', 'SiCl₄']],
+ ['A white solid oxide that reacts violently with water to give a solution of pH about 2.', 'P₄O₁₀', ['SiO₂', 'P₄O₁₀', 'Al₂O₃', 'SO₃']],
+ ['A very hard oxide that melts above 1700 °C and is attacked only by hot concentrated NaOH.', 'SiO₂', ['Al₂O₃', 'MgO', 'SiO₂', 'P₄O₁₀']],
+ ['A white chloride whose solution (pH 6.5) gives a white precipitate with NaOH that does not dissolve in excess.', 'MgCl₂', ['MgCl₂', 'AlCl₃', 'NaCl', 'PCl₅']],
+ ['A pale yellow solid chloride that reacts with water giving steamy fumes and only a colourless acidic solution.', 'PCl₅', ['PCl₅', 'SiCl₄', 'AlCl₃', 'MgCl₂']],
+ ['A white oxide, melting point 2852 °C, that reacts slowly with water to give a solution of pH about 9.', 'MgO', ['Na₂O', 'MgO', 'Al₂O₃', 'SiO₂']],
+ ['An oxide that melts at 17 °C and reacts with water to form a strong acid.', 'SO₃', ['SO₃', 'P₄O₁₀', 'SiO₂', 'SO₂']],
+];
+SIMS.p3game = function (el) {
+  let order = P3Q.map((_, i) => i).sort(() => Math.random() - .5), k = 0, ok = 0, n = 0;
+  el.innerHTML = `<div class="card" style="box-shadow:none"><p class="small muted" style="margin:0">Mystery <b data-k></b> of ${P3Q.length} · score <b data-sc>0</b></p><p data-cl style="font-size:17px;margin:8px 0"></p>
+   <div class="row" data-op style="flex-wrap:wrap;gap:6px"></div><div class="simfb" data-fb></div><div class="row" style="margin-top:8px"><button class="btn y" data-nx>Next mystery</button></div></div>`;
+  const q = s => el.querySelector(s);
+  function show() {
+    const it = P3Q[order[k]]; q('[data-k]').textContent = k + 1; q('[data-cl]').textContent = it[0]; q('[data-fb]').className = 'simfb'; q('[data-fb]').innerHTML = '';
+    q('[data-op]').innerHTML = [...it[2]].sort(() => Math.random() - .5).map(o => `<button class="btn alt" data-ans="${o}">${o}</button>`).join('');
+    q('[data-op]').querySelectorAll('[data-ans]').forEach(b => b.onclick = () => {
+      const right = b.dataset.ans === it[1]; n++; if (right) ok++; q('[data-sc]').textContent = `${ok}/${n}`;
+      q('[data-op]').querySelectorAll('button').forEach(x => { x.disabled = true; if (x.dataset.ans === it[1]) x.className = 'btn y' });
+      q('[data-fb]').className = 'simfb ' + (right ? 'ok' : 'bad'); q('[data-fb]').innerHTML = right ? '✔ Correct!' : `✘ It is <b>${it[1]}</b>.`;
+    });
+  }
+  q('[data-nx]').onclick = () => { k = (k + 1) % P3Q.length; if (!k) order.sort(() => Math.random() - .5); show() };
+  show();
+};
 })();
