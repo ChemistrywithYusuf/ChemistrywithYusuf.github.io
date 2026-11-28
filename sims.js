@@ -816,4 +816,114 @@ SIMS.p3game = function (el) {
   q('[data-nx]').onclick = () => { k = (k + 1) % P3Q.length; if (!k) order.sort(() => Math.random() - .5); show() };
   show();
 };
+
+/* ---------------- Chapter 10: Group 2 trends ---------------- */
+const G2 = [
+ { s: 'Mg', r: 0.160, ie: 2186, mp: 650, oh: 0.0012, so4: 35.1, co3: 350, w: 'very slow with cold water; burns in steam → MgO + H₂' },
+ { s: 'Ca', r: 0.197, ie: 1740, mp: 842, oh: 0.173, so4: 0.20, co3: 840, w: 'steady fizzing with cold water → Ca(OH)₂ (cloudy) + H₂' },
+ { s: 'Sr', r: 0.215, ie: 1608, mp: 777, oh: 0.80, so4: 0.013, co3: 1290, w: 'faster fizzing → Sr(OH)₂ + H₂' },
+ { s: 'Ba', r: 0.217, ie: 1468, mp: 727, oh: 3.9, so4: 0.00024, co3: 1360, w: 'vigorous → Ba(OH)₂ + H₂' },
+];
+SIMS.g2trends = function (el) {
+  const PR = [['r', 'atomic radius / nm', 'increases: more shells'], ['ie', '1st + 2nd ionisation energy / kJ mol⁻¹', 'decreases: outer electrons further away and more shielded'], ['oh', 'solubility of hydroxide / g per 100 g water', 'increases down the group'], ['so4', 'solubility of sulfate / g per 100 g water', 'decreases down the group (log scale)'], ['co3', 'carbonate decomposition temperature / °C', 'increases: larger cations polarise the carbonate ion less']];
+  el.innerHTML = `<div class="row" style="flex-wrap:wrap;gap:6px">${PR.map((p, i) => `<button class="btn ${i ? 'alt' : 'y'}" data-pr="${p[0]}">${p[1].split(' /')[0]}</button>`).join('')}</div>
+   <div data-ch style="display:flex;align-items:flex-end;gap:10px;height:180px;margin:12px 0 4px;border-bottom:2px solid #9aa6b2"></div>
+   <div style="display:flex;gap:10px">${G2.map(e => `<b style="flex:1;text-align:center">${e.s}</b>`).join('')}</div>
+   <div class="simfb ok" data-o style="margin-top:8px"></div>`;
+  const q = s => el.querySelector(s);
+  function draw(k) {
+    const p = PR.find(x => x[0] === k), lg = k === 'so4', v = G2.map(e => lg ? Math.log10(e[k]) + 4 : e[k]), mx = Math.max(...v);
+    q('[data-ch]').innerHTML = G2.map((e, i) => `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%"><span class="small">${e[k]}</span><div style="width:70%;height:${Math.max(2, v[i] / mx * 150)}px;background:#0b7ea3;border-radius:6px 6px 0 0;transition:height .4s"></div></div>`).join('');
+    q('[data-o]').innerHTML = `<b>${p[1]}</b>: ${p[2]}.<br><span class="small">Reaction with water: ${G2.map(e => `<b>${e.s}</b> ${e.w}`).join('; ')}.</span>`;
+    el.querySelectorAll('[data-pr]').forEach(b => b.className = 'btn ' + (b.dataset.pr === k ? 'y' : 'alt'));
+  }
+  el.querySelectorAll('[data-pr]').forEach(b => b.onclick = () => draw(b.dataset.pr)); draw('r');
+};
+
+/* ---------------- Chapter 10: thermal decomposition calculator ---------------- */
+SIMS.decomp = function (el) {
+  const AR = { Mg: 24.3, Ca: 40.1, Sr: 87.6, Ba: 137.3 }, T = { CO3: { Mg: 350, Ca: 840, Sr: 1290, Ba: 1360 }, NO3: { Mg: 330, Ca: 560, Sr: 570, Ba: 590 } };
+  el.innerHTML = `<div class="row" style="flex-wrap:wrap;gap:6px"><select class="sel" data-m>${Object.keys(AR).map(m => `<option>${m}</option>`).join('')}</select>
+   <select class="sel" data-a><option value="CO3">carbonate</option><option value="NO3">nitrate</option></select>
+   <label class="small">mass / g <input class="sel" type="number" data-g value="5.00" step="any" min="0" style="width:90px"></label></div><div class="simfb ok" data-o style="margin-top:8px"></div>`;
+  const q = s => el.querySelector(s), f = x => (+x.toPrecision(3)).toString();
+  function go() {
+    const m = q('[data-m]').value, a = q('[data-a]').value, g = +q('[data-g]').value, M = a === 'CO3' ? AR[m] + 60.0 : AR[m] + 124.0, n = g / M, MO = AR[m] + 16.0;
+    const eq = a === 'CO3' ? `${m}CO₃ → ${m}O + CO₂` : `2${m}(NO₃)₂ → 2${m}O + 4NO₂ + O₂`;
+    const gas = a === 'CO3' ? `CO₂: ${f(n)} mol = <b>${f(n * 24)} dm³</b>` : `NO₂: ${f(2 * n)} mol = <b>${f(48 * n)} dm³</b> (brown); O₂: ${f(n / 2)} mol = <b>${f(12 * n)} dm³</b>; total ${f(2.5 * n)} mol`;
+    q('[data-o]').innerHTML = `<b>${eq}</b><br>M = ${f(M)} g mol⁻¹ → n = ${g} ÷ ${f(M)} = ${f(n)} mol<br>${gas}<br>residue ${m}O: ${f(n * MO)} g (mass loss ${f(g - n * MO)} g)<br><span class="small muted">Approximate decomposition temperature: about ${T[a][m]} °C. Lower down the group = larger cation = less polarisation of the anion = more stable.</span>`;
+  }
+  el.querySelectorAll('select,input').forEach(x => x.addEventListener('input', go)); go();
+};
+
+/* ---------------- Chapter 11: halogen test-tube lab ---------------- */
+SIMS.halolab = function (el) {
+  const X = ['Cl', 'Br', 'I'], NAME = { Cl: 'chlorine', Br: 'bromine', I: 'iodine' }, COL = { Cl: '#e8f7c8', Br: '#f2a23a', I: '#8a5a2b', none: '#eef6fb' }, AG = { Cl: ['white', '#ffffff', 'dissolves in dilute NH₃(aq)'], Br: ['cream', '#f3e7c3', 'dissolves only in concentrated NH₃(aq)'], I: ['yellow', '#f4dd4a', 'insoluble even in concentrated NH₃(aq)'] };
+  el.innerHTML = `<div class="row" style="flex-wrap:wrap;gap:6px;align-items:center"><select class="sel" data-a><option value="hal">add halogen water</option><option value="ag">add AgNO₃(aq), then NH₃(aq)</option></select>
+   <select class="sel" data-h>${X.map(x => `<option value="${x}">${NAME[x]} water</option>`).join('')}</select> to <select class="sel" data-k>${X.map(x => `<option value="${x}">K${x}(aq)</option>`).join('')}</select><button class="btn y" data-go>Mix</button></div>
+   <div style="display:flex;gap:24px;align-items:flex-end;margin:12px 0"><svg viewBox="0 0 80 160" width="70" data-tube></svg><div class="simfb" data-o style="flex:1"></div></div>`;
+  const q = s => el.querySelector(s);
+  const tube = (c, ppt) => `<rect x="20" y="10" width="40" height="140" rx="20" fill="none" stroke="#667" stroke-width="3"/><rect x="23" y="60" width="34" height="86" rx="16" fill="${c}"/>${ppt ? `<ellipse cx="40" cy="132" rx="15" ry="9" fill="${ppt}" stroke="#bbb"/>` : ''}`;
+  q('[data-a]').onchange = () => { q('[data-h]').style.display = q('[data-a]').value === 'hal' ? '' : 'none' };
+  q('[data-go]').onclick = () => {
+    const a = q('[data-a]').value, h = q('[data-h]').value, k = q('[data-k]').value, o = q('[data-o]');
+    if (a === 'ag') { const g = AG[k]; q('[data-tube]').innerHTML = tube('#eef6fb', g[1]); o.className = 'simfb ok'; o.innerHTML = `Ag⁺(aq) + ${k}⁻(aq) → Ag${k}(s): <b>${g[0]} precipitate</b>, which ${g[2]}.`; return }
+    const r = X.indexOf(h) < X.indexOf(k);
+    q('[data-tube]').innerHTML = tube(r ? COL[k] : COL[h]);
+    o.className = 'simfb ' + (r ? 'ok' : 'bad');
+    o.innerHTML = h === k ? 'Same halogen and halide: nothing happens.' : r ? `<b>Reaction.</b> ${NAME[h][0].toUpperCase() + NAME[h].slice(1)} is the stronger oxidising agent: ${h}₂ + 2${k}⁻ → 2${h}⁻ + ${k}₂. The solution turns ${k === 'Br' ? 'orange' : 'brown'} as ${NAME[k]} forms.` : `<b>No reaction.</b> ${NAME[h][0].toUpperCase() + NAME[h].slice(1)} is a weaker oxidising agent than ${NAME[k]}, so it cannot oxidise ${k}⁻. The colour is just that of the ${NAME[h]} water.`;
+  };
+  q('[data-go]').click();
+};
+
+/* ---------------- Chapter 11: halides with concentrated sulfuric acid ---------------- */
+SIMS.h2so4 = function (el) {
+  const D = {
+   NaCl: { eq: ['NaCl + H₂SO₄ → NaHSO₄ + HCl'], obs: 'steamy (misty) fumes of HCl', s: '+6 (no change)', why: 'Cl⁻ is too weak a reducing agent to reduce H₂SO₄. Only an acid–base reaction happens.' },
+   NaBr: { eq: ['NaBr + H₂SO₄ → NaHSO₄ + HBr', '2HBr + H₂SO₄ → Br₂ + SO₂ + 2H₂O'], obs: 'steamy fumes of HBr, orange-brown vapour of Br₂, choking SO₂', s: '+6 → +4 (SO₂)', why: 'Br⁻ is a stronger reducing agent: it reduces H₂SO₄ to SO₂.' },
+   NaI: { eq: ['NaI + H₂SO₄ → NaHSO₄ + HI', '2HI + H₂SO₄ → I₂ + SO₂ + 2H₂O', '6HI + H₂SO₄ → 3I₂ + S + 4H₂O', '8HI + H₂SO₄ → 4I₂ + H₂S + 4H₂O'], obs: 'some steamy fumes, purple vapour / black solid (I₂), yellow solid (S), rotten-egg smell (H₂S)', s: '+6 → +4, 0 and −2', why: 'I⁻ is the strongest reducing agent: it reduces sulfur all the way to −2.' } };
+  el.innerHTML = `<div class="row" style="gap:6px">${Object.keys(D).map((k, i) => `<button class="btn ${i ? 'alt' : 'y'}" data-x="${k}">${k}</button>`).join('')}</div><div class="simfb ok" data-o style="margin-top:8px"></div>`;
+  const q = s => el.querySelector(s);
+  function show(k) { const d = D[k]; el.querySelectorAll('[data-x]').forEach(b => b.className = 'btn ' + (b.dataset.x === k ? 'y' : 'alt'));
+    q('[data-o]').innerHTML = `<b>${k} + concentrated H₂SO₄</b><br>${d.eq.map(e => `• ${e}`).join('<br>')}<br><b>Observations:</b> ${d.obs}<br><b>Oxidation number of S:</b> ${d.s}<br>${d.why}` }
+  el.querySelectorAll('[data-x]').forEach(b => b.onclick = () => show(b.dataset.x)); show('NaCl');
+};
+
+/* ---------------- Chapter 12: pollution cycle explorer ---------------- */
+SIMS.pollution = function (el) {
+  const ST = [
+   ['Engine', 'At the very high temperature in the cylinder: <b>N₂ + O₂ → 2NO</b>. Incomplete combustion also gives <b>CO</b> and <b>unburnt hydrocarbons</b>.'],
+   ['Air', 'NO is oxidised: <b>2NO + O₂ → 2NO₂</b> (brown gas).'],
+   ['Acid rain (nitric)', '<b>4NO₂ + O₂ + 2H₂O → 4HNO₃</b>.'],
+   ['Acid rain (sulfuric)', 'NO₂ catalyses the oxidation of SO₂: <b>SO₂ + NO₂ → SO₃ + NO</b>, then <b>NO + ½O₂ → NO₂</b>. Finally <b>SO₃ + H₂O → H₂SO₄</b>.'],
+   ['Photochemical smog', 'In sunlight, NO₂ reacts with unburnt hydrocarbons to form <b>PAN</b> (peroxyacetyl nitrate), an eye and lung irritant.'],
+   ['Catalytic converter', 'Pt/Rh/Pd catalyst: <b>2NO + 2CO → N₂ + 2CO₂</b> (NO reduced, CO oxidised); hydrocarbons + O₂ → CO₂ + H₂O.'],
+  ];
+  el.innerHTML = `<div class="row" style="flex-wrap:wrap;gap:6px">${ST.map((x, i) => `<button class="btn ${i ? 'alt' : 'y'}" data-st="${i}">${i + 1}. ${x[0]}</button>`).join('')}</div><div class="simfb ok" data-o style="margin-top:8px;font-size:16px"></div>
+   <div class="row" style="margin-top:8px"><button class="btn alt" data-nx>Next stage →</button></div>`;
+  const q = s => el.querySelector(s); let k = 0;
+  function show() { q('[data-o]').innerHTML = ST[k][1]; el.querySelectorAll('[data-st]').forEach(b => b.className = 'btn ' + (+b.dataset.st === k ? 'y' : 'alt')) }
+  el.querySelectorAll('[data-st]').forEach(b => b.onclick = () => { k = +b.dataset.st; show() }); q('[data-nx]').onclick = () => { k = (k + 1) % ST.length; show() }; show();
+};
+
+/* ---------------- Chapter 12: ammonia / ammonium game ---------------- */
+const NHQ = [
+ ['NH₄Cl(s) + Ca(OH)₂(s), heated', true, 'A base removes H⁺ from NH₄⁺: 2NH₄Cl + Ca(OH)₂ → CaCl₂ + 2NH₃ + 2H₂O.'],
+ ['(NH₄)₂SO₄(aq) + dilute HCl, warmed', false, 'An acid cannot take H⁺ from NH₄⁺.'],
+ ['NH₄NO₃(aq) + NaOH(aq), warmed', true, 'NH₄⁺ + OH⁻ → NH₃ + H₂O.'],
+ ['NH₄Cl(aq) + AgNO₃(aq)', false, 'A white AgCl precipitate forms, but no ammonia: no base present.'],
+ ['N₂ + H₂, 450 °C, 200 atm, Fe', true, 'The Haber process.'],
+ ['NH₄Cl(aq) + MgO(s), warmed', true, 'MgO is a basic oxide; it removes H⁺ from NH₄⁺ (slowly).'],
+ ['(NH₄)₂SO₄(aq) + Na₂SO₄(aq)', false, 'No base: just a mixture of salts.'],
+ ['NH₄Cl(s) heated on its own', true, 'NH₄Cl ⇌ NH₃ + HCl: it dissociates, but the gases recombine on cooling.'],
+];
+SIMS.nh3game = function (el) {
+  let order = NHQ.map((_, i) => i).sort(() => Math.random() - .5), k = 0, ok = 0, n = 0;
+  el.innerHTML = `<div class="card" style="box-shadow:none"><p class="small muted" style="margin:0">Mixture <b data-k></b> of ${NHQ.length} · score <b data-sc>0</b></p><p data-cl style="font-size:18px;margin:8px 0"></p>
+   <div class="row" style="gap:8px"><button class="btn alt" data-v="1">Ammonia released</button><button class="btn alt" data-v="0">No ammonia</button></div><div class="simfb" data-fb></div><div class="row" style="margin-top:8px"><button class="btn y" data-nx>Next</button></div></div>`;
+  const q = s => el.querySelector(s), bs = [...el.querySelectorAll('[data-v]')];
+  function show() { const it = NHQ[order[k]]; q('[data-k]').textContent = k + 1; q('[data-cl]').textContent = it[0]; q('[data-fb]').className = 'simfb'; q('[data-fb]').innerHTML = ''; bs.forEach(b => { b.disabled = false; b.className = 'btn alt' }) }
+  bs.forEach(b => b.onclick = () => { const it = NHQ[order[k]], right = (b.dataset.v === '1') === it[1]; n++; if (right) ok++; q('[data-sc]').textContent = `${ok}/${n}`; bs.forEach(x => x.disabled = true); q('[data-fb]').className = 'simfb ' + (right ? 'ok' : 'bad'); q('[data-fb]').innerHTML = `${right ? '✔' : '✘'} ${it[1] ? 'Ammonia is released.' : 'No ammonia.'} ${it[2]}` });
+  q('[data-nx]').onclick = () => { k = (k + 1) % NHQ.length; if (!k) order.sort(() => Math.random() - .5); show() }; show();
+};
 })();
