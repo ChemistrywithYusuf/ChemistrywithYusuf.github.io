@@ -1066,4 +1066,143 @@ SIMS.agrace = function (el) {
   };
   setup();
 };
+/* ---------------- Chapter 16: alcohol test bench + mystery alcohol ---------------- */
+// [formula, class, iodoform?, distil product, reflux product, dehydration products, halogenation product with PCl5]
+const ALC = {
+  'methanol': ['CH₃OH', 'primary', 0, 'methanal, HCHO', 'methanoic acid, HCOOH (further oxidised to CO₂)', 'none (only one carbon)', 'CH₃Cl'],
+  'ethanol': ['CH₃CH₂OH', 'primary', 1, 'ethanal, CH₃CHO', 'ethanoic acid, CH₃COOH', 'ethene', 'CH₃CH₂Cl'],
+  'propan-1-ol': ['CH₃CH₂CH₂OH', 'primary', 0, 'propanal, CH₃CH₂CHO', 'propanoic acid, CH₃CH₂COOH', 'propene', 'CH₃CH₂CH₂Cl'],
+  'propan-2-ol': ['CH₃CH(OH)CH₃', 'secondary', 1, 'propanone, CH₃COCH₃', 'propanone, CH₃COCH₃', 'propene', 'CH₃CHClCH₃'],
+  'butan-1-ol': ['CH₃CH₂CH₂CH₂OH', 'primary', 0, 'butanal', 'butanoic acid', 'but-1-ene', '1-chlorobutane'],
+  'butan-2-ol': ['CH₃CH(OH)CH₂CH₃', 'secondary', 1, 'butanone', 'butanone', 'but-1-ene, (E)- and (Z)-but-2-ene', '2-chlorobutane'],
+  '2-methylpropan-2-ol': ['(CH₃)₃COH', 'tertiary', 0, '—', '—', 'methylpropene', '2-chloro-2-methylpropane'],
+  'pentan-3-ol': ['CH₃CH₂CH(OH)CH₂CH₃', 'secondary', 0, 'pentan-3-one', 'pentan-3-one', '(E)- and (Z)-pent-2-ene', '3-chloropentane'],
+};
+const ALT = {
+  na: ['add sodium', a => ['fizzing (H₂); the alkoxide forms', '2ROH + 2Na → 2RO⁻Na⁺ + H₂', '#dff1fb']],
+  pcl: ['add PCl₅', a => ['steamy fumes of HCl', 'product: ' + ALC[a][6] + ' (+ POCl₃ + HCl)', '#dff1fb']],
+  cr: ['warm with acidified K₂Cr₂O₇, distil', a => ALC[a][1] === 'tertiary' ? ['stays orange: no reaction', 'tertiary: no H on the C–OH carbon', '#f39a2b'] : ['orange → green', 'distillate: ' + ALC[a][3], '#5fae5a']],
+  rf: ['heat under reflux with excess acidified K₂Cr₂O₇', a => ALC[a][1] === 'tertiary' ? ['stays orange: no reaction', 'tertiary alcohols are not oxidised', '#f39a2b'] : ['orange → green', 'product: ' + ALC[a][4], '#5fae5a']],
+  io: ['warm with alkaline I₂(aq)', a => ALC[a][2] ? ['pale yellow precipitate (CHI₃), antiseptic smell', 'contains CH₃CH(OH)– (oxidised to CH₃CO–)', '#f3d23c'] : ['no precipitate', 'no CH₃CH(OH)– group', '#e9e0b8']],
+  dh: ['heat with conc. H₃PO₄ (or pass over hot Al₂O₃)', a => [ALC[a][5] === 'none (only one carbon)' ? 'no alkene can form' : 'an alkene is given off', 'dehydration: ' + ALC[a][5], '#dff1fb']],
+};
+function alcTube(col) { return `<svg viewBox="0 0 60 120" style="width:54px;flex:none"><path d="M10 4 V96 a20 20 0 0 0 40 0 V4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 40 V96 a18 18 0 0 0 36 0 V40 Z" fill="${col}"/></svg>` }
+SIMS.alctest = function (el) {
+  el.innerHTML = `<div class="row" style="flex-wrap:wrap;gap:6px"><select class="sel" data-a style="flex:1;min-width:180px">${Object.keys(ALC).map(k => `<option>${k}</option>`).join('')}</select>
+   <select class="sel" data-g style="flex:1;min-width:220px">${Object.keys(ALT).map(k => `<option value="${k}">${ALT[k][0]}</option>`).join('')}</select></div>
+   <div class="row" style="gap:10px;align-items:center;margin-top:8px"><span data-tb></span><div class="simfb ok" data-o style="flex:1;margin:0"></div></div>`;
+  const q = s => el.querySelector(s);
+  function go() { const a = q('[data-a]').value, g = q('[data-g]').value, r = ALT[g][1](a); q('[data-tb]').innerHTML = alcTube(r[2]);
+    q('[data-o]').innerHTML = `<b>${a}</b>, ${ALC[a][0]} (${ALC[a][1]})<br>${ALT[g][0]}: <b>${r[0]}</b><br><span class="small">${r[1]}</span>` }
+  el.querySelectorAll('select').forEach(x => x.onchange = go); go();
+};
+SIMS.alcmystery = function (el) {
+  const ks = Object.keys(ALC); let ans, opts, used, score = 0, n = 0;
+  el.innerHTML = `<p class="small muted" style="margin:0">Identify the unknown alcohol using as few tests as you can. Score <b data-sc>0/0</b></p>
+   <div class="row" style="flex-wrap:wrap;gap:6px;margin:8px 0">${['cr', 'rf', 'io', 'dh'].map(k => `<button class="btn alt" data-t="${k}">${ALT[k][0]}</button>`).join('')}</div>
+   <div data-log class="small" style="min-height:24px"></div><p style="margin:8px 0 4px"><b>Which alcohol is it?</b></p><div class="row" style="flex-wrap:wrap;gap:6px" data-ch></div><div class="simfb" data-fb></div>
+   <div class="row" style="margin-top:8px"><button class="btn y" data-nx>New unknown</button></div>`;
+  const q = s => el.querySelector(s);
+  function nw() { ans = ks[Math.floor(Math.random() * ks.length)]; opts = [ans]; while (opts.length < 4) { const k = ks[Math.floor(Math.random() * ks.length)]; if (!opts.includes(k)) opts.push(k) } opts.sort(() => Math.random() - .5); used = 0;
+    q('[data-log]').innerHTML = ''; q('[data-fb]').className = 'simfb'; q('[data-fb]').innerHTML = '';
+    q('[data-ch]').innerHTML = opts.map(o => `<button class="btn alt" data-c="${o}">${o}</button>`).join(''); el.querySelectorAll('[data-c]').forEach(b => b.onclick = () => pick(b));
+    el.querySelectorAll('[data-t]').forEach(b => b.disabled = false) }
+  el.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { const r = ALT[b.dataset.t][1](ans); used++; b.disabled = true; q('[data-log]').innerHTML += `<div>• ${ALT[b.dataset.t][0]}: <b>${r[0]}</b></div>` });
+  function pick(b) { const ok = b.dataset.c === ans; n++; if (ok) score++; q('[data-sc]').textContent = `${score}/${n}`; el.querySelectorAll('[data-c]').forEach(x => { x.disabled = true; if (x.dataset.c === ans) x.className = 'btn y' });
+    q('[data-fb]').className = 'simfb ' + (ok ? 'ok' : 'bad'); q('[data-fb]').innerHTML = `${ok ? '✔' : '✘'} It was <b>${ans}</b>, ${ALC[ans][0]}: ${ALC[ans][1]}${ALC[ans][2] ? ', with a CH₃CH(OH)– group' : ''}. You used ${used} test${used === 1 ? '' : 's'}.` }
+  q('[data-nx]').onclick = nw; nw();
+};
+/* ---------------- Chapter 17: carbonyl test lab ---------------- */
+// [formula, aldehyde?, ketone?, CH3CO/CH3CH(OH)?, oxidisable by dichromate?, NaBH4 product, HCN product]
+const CB = {
+  'methanal': ['HCHO', 1, 0, 0, 1, 'methanol', 'hydroxyethanenitrile, HOCH₂CN'],
+  'ethanal': ['CH₃CHO', 1, 0, 1, 1, 'ethanol', '2-hydroxypropanenitrile, CH₃CH(OH)CN (chiral)'],
+  'propanal': ['CH₃CH₂CHO', 1, 0, 0, 1, 'propan-1-ol', '2-hydroxybutanenitrile (chiral)'],
+  'propanone': ['CH₃COCH₃', 0, 1, 1, 0, 'propan-2-ol', '2-hydroxy-2-methylpropanenitrile, (CH₃)₂C(OH)CN (not chiral)'],
+  'butanone': ['CH₃COCH₂CH₃', 0, 1, 1, 0, 'butan-2-ol', '2-hydroxy-2-methylbutanenitrile (chiral)'],
+  'pentan-3-one': ['CH₃CH₂COCH₂CH₃', 0, 1, 0, 0, 'pentan-3-ol', '2-ethyl-2-hydroxybutanenitrile (not chiral)'],
+  'propan-2-ol': ['CH₃CH(OH)CH₃', 0, 0, 1, 1, 'no reaction', 'no reaction'],
+};
+const CBT = {
+  dnph: ['2,4-DNPH reagent', c => CB[c][1] || CB[c][2] ? ['orange precipitate', 'C=O present (aldehyde or ketone)', '#f08a24'] : ['no change', 'no C=O group', '#f3e3a0']],
+  tol: ['Tollens’ reagent, warm', c => CB[c][1] ? ['silver mirror', 'aldehyde oxidised to RCOO⁻; Ag⁺ reduced to Ag', '#b9bec4'] : ['no change', 'not an aldehyde', '#eef2f5']],
+  feh: ['Fehling’s solution, warm', c => CB[c][1] ? ['blue → red-brown precipitate', 'aldehyde oxidised; Cu²⁺ reduced to Cu₂O', '#b5462a'] : ['stays blue', 'not an aldehyde', '#3a7bd5']],
+  io: ['alkaline I₂(aq), warm', c => CB[c][3] ? ['pale yellow precipitate (CHI₃)', 'contains CH₃CO– or CH₃CH(OH)–', '#f3d23c'] : ['no precipitate', 'no CH₃CO– / CH₃CH(OH)– group', '#e9e0b8']],
+  cr: ['acidified K₂Cr₂O₇, warm', c => CB[c][4] ? ['orange → green', c === 'propan-2-ol' ? 'secondary alcohol → propanone' : 'aldehyde → carboxylic acid', '#5fae5a'] : ['stays orange', 'ketones are not oxidised', '#f39a2b']],
+  nab: ['NaBH₄', c => [CB[c][5] === 'no reaction' ? 'no reaction' : 'reduced', CB[c][5] === 'no reaction' ? 'nothing to reduce' : 'product: ' + CB[c][5], '#dff1fb']],
+  hcn: ['HCN with a little KCN', c => [CB[c][6] === 'no reaction' ? 'no reaction' : 'nucleophilic addition', CB[c][6] === 'no reaction' ? 'no C=O group' : 'product: ' + CB[c][6], '#dff1fb']],
+};
+SIMS.carbtest = function (el) {
+  el.innerHTML = `<div class="row" style="flex-wrap:wrap;gap:6px"><select class="sel" data-a style="flex:1;min-width:160px">${Object.keys(CB).map(k => `<option>${k}</option>`).join('')}</select>
+   <select class="sel" data-g style="flex:1;min-width:200px">${Object.keys(CBT).map(k => `<option value="${k}">${CBT[k][0]}</option>`).join('')}</select></div>
+   <div class="row" style="gap:10px;align-items:center;margin-top:8px"><span data-tb></span><div class="simfb ok" data-o style="flex:1;margin:0"></div></div>
+   <div style="overflow-x:auto;margin-top:8px"><table class="t small" data-tab></table></div>`;
+  const q = s => el.querySelector(s);
+  function go() { const a = q('[data-a]').value, g = q('[data-g]').value, r = CBT[g][1](a); q('[data-tb]').innerHTML = alcTube(r[2]);
+    q('[data-o]').innerHTML = `<b>${a}</b>, ${CB[a][0]}<br>${CBT[g][0]}: <b>${r[0]}</b><br><span class="small">${r[1]}</span>`;
+    q('[data-tab]').innerHTML = `<tr><th>${a}</th>${['2,4-DNPH', 'Tollens’', 'Fehling’s', 'alkaline I₂', 'K₂Cr₂O₇/H⁺'].map(k => `<th>${k}</th>`).join('')}</tr><tr><td>result</td>${['dnph', 'tol', 'feh', 'io', 'cr'].map(k => `<td>${CBT[k][1](a)[0]}</td>`).join('')}</tr>` }
+  el.querySelectorAll('select').forEach(x => x.onchange = go); go();
+};
+
+/* ---------------- Chapter 17: nucleophilic addition stepper ---------------- */
+const NAD = { 'ethanal': ['CH₃', 'H', '2-hydroxypropanenitrile', 1], 'propanone': ['CH₃', 'CH₃', '2-hydroxy-2-methylpropanenitrile', 0], 'propanal': ['C₂H₅', 'H', '2-hydroxybutanenitrile', 1], 'butanone': ['C₂H₅', 'CH₃', '2-hydroxy-2-methylbutanenitrile', 1] };
+SIMS.nucadd = function (el) {
+  let st = 0;
+  el.innerHTML = `<div class="row" style="gap:6px;flex-wrap:wrap"><select class="sel" data-a style="flex:1;min-width:160px">${Object.keys(NAD).map(k => `<option>${k}</option>`).join('')}</select>
+   <button class="btn alt" data-b>◀ Back</button><button class="btn y" data-n>Next step ▶</button></div>
+   <div style="overflow-x:auto"><svg viewBox="0 0 420 170" style="width:100%;min-width:320px;max-width:520px;display:block;margin:6px auto" data-s></svg></div><div class="simfb ok" data-o></div>`;
+  const q = s => el.querySelector(s);
+  const T = (x, y, t, o = '') => `<text x="${x}" y="${y}" font-size="15" text-anchor="middle" fill="currentColor" ${o}>${t}</text>`;
+  const AR = (d, c = '#e0457b') => `<path d="${d}" fill="none" stroke="${c}" stroke-width="2" marker-end="url(#ah)"/>`;
+  function draw() {
+    const [R1, R2, name, chiral] = NAD[q('[data-a]').value]; let s = `<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#e0457b"/></marker></defs>`, msg;
+    const carb = (cx, oTxt, dbl, extra) => T(cx - 50, 60, R1) + T(cx - 50, 135, R2) + `<line x1="${cx - 38}" y1="68" x2="${cx - 8}" y2="88" stroke="currentColor"/><line x1="${cx - 38}" y1="122" x2="${cx - 8}" y2="102" stroke="currentColor"/>` + T(cx, 100, 'C') +
+      (dbl ? `<line x1="${cx + 10}" y1="92" x2="${cx + 58}" y2="92" stroke="currentColor"/><line x1="${cx + 10}" y1="99" x2="${cx + 58}" y2="99" stroke="currentColor"/>` : `<line x1="${cx + 10}" y1="95" x2="${cx + 58}" y2="95" stroke="currentColor"/>`) + T(cx + 70, 100, oTxt) + (extra || '');
+    if (st === 0) { s += carb(150, 'O', 1, T(150, 82, 'δ+', 'font-size="11"') + T(220, 82, 'δ−', 'font-size="11"')) + T(330, 100, ':C≡N⁻'); msg = 'The C=O bond is polar: oxygen is more electronegative, so the carbonyl carbon is δ+. The cyanide ion (from KCN) has a lone pair on carbon.' }
+    if (st === 1) { s += carb(150, 'O', 1) + T(330, 100, ':C≡N⁻') + AR('M310 108 Q240 150 160 112') + AR('M190 88 Q205 60 218 84'); msg = 'Step 1: the lone pair on the C of CN⁻ attacks the δ+ carbon. At the same time the π bond pair of C=O moves onto oxygen.' }
+    if (st === 2) { s += carb(150, 'O⁻', 0, `<line x1="150" y1="108" x2="150" y2="140" stroke="currentColor"/>` + T(150, 158, 'CN')) + T(330, 100, 'H–CN') + AR('M226 108 Q270 140 318 106'); msg = 'Intermediate: an alkoxide anion. Its O⁻ uses a lone pair to take H⁺ from HCN (curly arrow from the O lone pair to H, and from the H–C bond onto CN).' }
+    if (st === 3) { s += carb(150, 'OH', 0, `<line x1="150" y1="108" x2="150" y2="140" stroke="currentColor"/>` + T(150, 158, 'CN')) + T(330, 100, '+ CN⁻'); msg = `Product: <b>${name}</b>. CN⁻ is regenerated, so it acts as a catalyst. ${chiral ? 'The product has a chiral carbon; CN⁻ attacks the planar C=O from either side equally, so a racemic mixture forms.' : 'The product has two identical groups on the central carbon, so it is not chiral.'}` }
+    q('[data-s]').innerHTML = s; q('[data-o]').innerHTML = `<b>Stage ${st + 1} of 4.</b> ${msg}`;
+  }
+  q('[data-n]').onclick = () => { st = Math.min(3, st + 1); draw() }; q('[data-b]').onclick = () => { st = Math.max(0, st - 1); draw() }; q('[data-a]').onchange = () => { st = 0; draw() }; draw();
+};
+/* ---------------- Chapter 18: ester builder / hydrolyser ---------------- */
+const EAC = { methanoic: ['H', 'methan', 'HCOOH'], ethanoic: ['CH₃', 'ethan', 'CH₃COOH'], propanoic: ['CH₃CH₂', 'propan', 'CH₃CH₂COOH'], butanoic: ['CH₃CH₂CH₂', 'butan', 'CH₃CH₂CH₂COOH'] };
+const EAL = { methanol: ['CH₃', 'methyl'], ethanol: ['CH₂CH₃', 'ethyl'], 'propan-1-ol': ['CH₂CH₂CH₃', 'propyl'], 'propan-2-ol': ['CH(CH₃)₂', '1-methylethyl (propan-2-yl)'], 'butan-1-ol': ['CH₂CH₂CH₂CH₃', 'butyl'] };
+SIMS.esterbuild = function (el) {
+  el.innerHTML = `<div class="row" style="flex-wrap:wrap;gap:6px"><select class="sel" data-c style="flex:1;min-width:140px">${Object.keys(EAC).map(k => `<option value="${k}">${k} acid</option>`).join('')}</select>
+   <select class="sel" data-l style="flex:1;min-width:140px">${Object.keys(EAL).map(k => `<option>${k}</option>`).join('')}</select>
+   <select class="sel" data-m style="flex:1;min-width:160px"><option value="make">make the ester</option><option value="acid">hydrolyse: dilute acid</option><option value="alk">hydrolyse: NaOH(aq)</option></select></div>
+   <div class="simfb ok" data-o style="margin-top:8px;font-size:16px"></div>`;
+  const q = s => el.querySelector(s);
+  function go() { const c = EAC[q('[data-c]').value], l = EAL[q('[data-l]').value], m = q('[data-m]').value, al = q('[data-l]').value;
+    const est = `${c[0]}COO${l[0]}`, nm = `${l[1]} ${c[1]}oate`, alc = `HO${l[0]}`.replace('HOCH(CH₃)₂', '(CH₃)₂CHOH');
+    let h;
+    if (m === 'make') h = `${c[2]} + ${alc} ⇌ <b>${est}</b> + H₂O<br>Name: <b>${nm}</b><br><span class="small">Heat with a few drops of concentrated H₂SO₄ (catalyst). Condensation: the OH from the acid and the H from the alcohol leave as water. Alcohol part named first, acid part (…oate) second.</span>`;
+    else if (m === 'acid') h = `${est} + H₂O ⇌ <b>${c[2]}</b> + <b>${alc}</b><br><span class="small">Heat under reflux with dilute H₂SO₄ or HCl. Reversible: an equilibrium mixture forms, so conversion is incomplete.</span>`;
+    else h = `${est} + NaOH → <b>${c[0]}COO⁻Na⁺</b> + <b>${alc}</b><br><span class="small">Heat under reflux with NaOH(aq). Goes to completion because the carboxylate ion cannot react with the alcohol. Add acid afterwards to obtain ${c[2]}.</span>`;
+    q('[data-o]').innerHTML = `<b>${nm}</b> (${est})<br>` + h }
+  el.querySelectorAll('select').forEach(x => x.onchange = go); go();
+};
+
+/* ---------------- Chapter 18: gas from acids (mole bookkeeping) ---------------- */
+// name: [formula, number of COOH, number of alcohol OH]
+const GAC = { 'ethanoic acid': ['CH₃COOH', 1, 0], 'propanedioic acid': ['HOOCCH₂COOH', 2, 0], 'hydroxyethanoic acid': ['HOCH₂COOH', 1, 1], '2-hydroxypropanoic acid (lactic)': ['CH₃CH(OH)COOH', 1, 1], 'malic acid': ['HOOCCH(OH)CH₂COOH', 2, 1], 'ethane-1,2-diol': ['HOCH₂CH₂OH', 0, 2] };
+const GRE = { na: ['Na', 'H₂'], mg: ['Mg', 'H₂'], carb: ['Na₂CO₃', 'CO₂'], hc: ['NaHCO₃', 'CO₂'], oh: ['NaOH', 'none'] };
+SIMS.acidgas = function (el) {
+  el.innerHTML = `<div class="row" style="flex-wrap:wrap;gap:6px"><select class="sel" data-c style="flex:1;min-width:180px">${Object.keys(GAC).map(k => `<option>${k}</option>`).join('')}</select>
+   <select class="sel" data-r style="flex:1;min-width:120px">${Object.keys(GRE).map(k => `<option value="${k}">excess ${GRE[k][0]}</option>`).join('')}</select></div>
+   <div class="row" style="gap:12px;align-items:center;margin-top:8px;flex-wrap:wrap"><svg viewBox="0 0 220 60" style="width:220px;max-width:100%;flex:none"><rect x="10" y="20" width="180" height="22" rx="3" fill="none" stroke="currentColor"/><rect data-g x="11" y="21" width="0" height="20" fill="#7cc4ef"/><rect data-p x="11" y="16" width="4" height="30" fill="currentColor"/><text x="196" y="36" font-size="11" fill="currentColor">dm³</text></svg>
+   <div class="simfb ok" data-o style="flex:1;min-width:220px;margin:0"></div></div><p class="small muted" style="margin:6px 0 0">1.00 mol of compound; gas volume at room conditions (24.0 dm³ mol⁻¹). The syringe is full at 36 dm³.</p>`;
+  const q = s => el.querySelector(s);
+  function go() { const c = GAC[q('[data-c]').value], r = q('[data-r]').value, [co, oh] = [c[1], c[2]]; let gas = 0, used = 0, why;
+    if (r === 'na') { gas = (co + oh) / 2; used = co + oh; why = 'Na reacts with every O–H (COOH and alcohol OH): ½ H₂ per O–H.' }
+    if (r === 'mg') { gas = co / 2; used = co / 2; why = 'Mg reacts with acidic COOH groups only: 2RCOOH + Mg → (RCOO)₂Mg + H₂.' }
+    if (r === 'carb') { gas = co / 2; used = co / 2; why = 'Na₂CO₃ reacts with COOH only: 2RCOOH + Na₂CO₃ → 2RCOONa + H₂O + CO₂.' }
+    if (r === 'hc') { gas = co; used = co; why = 'NaHCO₃ reacts with COOH only: RCOOH + NaHCO₃ → RCOONa + H₂O + CO₂ (1 CO₂ per COOH).' }
+    if (r === 'oh') { gas = 0; used = co; why = 'NaOH neutralises COOH groups; alcohol OH groups are too weakly acidic. No gas.' }
+    const v = gas * 24.0, w = Math.min(178, v / 36 * 178); q('[data-g]').setAttribute('width', w); q('[data-p]').setAttribute('x', 11 + w);
+    q('[data-o]').innerHTML = `<b>${c[0]}</b>: ${co} COOH, ${oh} alcohol OH<br>mol ${GRE[r][0]} used: <b>${used}</b> · gas: <b>${gas ? gas + ' mol ' + GRE[r][1] + ' = ' + v.toFixed(1) + ' dm³' : 'none'}</b><br><span class="small">${why}</span>` }
+  el.querySelectorAll('select').forEach(x => x.onchange = go); go();
+};
 })();

@@ -1,7 +1,7 @@
 /* Chemistry with Yusuf – offline support. Network first (so daily updates arrive), cache as fallback. */
-const VERSION = 'cy9701-v15';
+const VERSION = 'cy9701-v18';
 const CORE = ['./', 'index.html', 'sims.js', 'games.js', 'extras.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png',
-  'data/elements.json', 'ptable.json', 'data/ch01.json', 'data/ch02.json', 'data/ch03.json', 'data/ch04.json', 'data/ch05.json', 'data/ch06.json', 'data/ch07.json', 'data/ch08.json', 'data/ch09.json', 'data/ch10.json', 'data/ch11.json', 'data/ch12.json', 'data/ch13.json', 'data/ch14.json', 'data/ch15.json'];
+  'data/elements.json', 'ptable.json', 'data/ch01.json', 'data/ch02.json', 'data/ch03.json', 'data/ch04.json', 'data/ch05.json', 'data/ch06.json', 'data/ch07.json', 'data/ch08.json', 'data/ch09.json', 'data/ch10.json', 'data/ch11.json', 'data/ch12.json', 'data/ch13.json', 'data/ch14.json', 'data/ch15.json', 'data/ch16.json', 'data/ch17.json', 'data/ch18.json'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => Promise.all(CORE.map(u => c.add(new Request(u, { cache: 'reload' })).catch(() => null)))).then(() => self.skipWaiting()));
 });
