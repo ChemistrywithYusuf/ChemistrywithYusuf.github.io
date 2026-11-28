@@ -394,4 +394,238 @@ SIMS.imf = function (el) {
   q('[data-x]').onclick = () => { k = (k + 1) % IMF.length; if (k === 0) order = order.sort(() => Math.random() - .5); show() };
   show();
 };
+
+/* ---------------- Chapter 4: ideal gas lab ---------------- */
+SIMS.gas = function (el) {
+  const R = 8.31, f = x => (Math.abs(x) >= 1e4 || Math.abs(x) < 1e-2) && x !== 0 ? x.toExponential(2).replace(/e([+-]?)(\d+)/, (m, sg, d) => ' × 10' + (sg === '-' ? '⁻' : '') + String(+d).split('').map(c => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+c]).join('')) : (+x.toPrecision(3)).toString();
+  el.innerHTML = `<div class="simgrid"><div>
+   <canvas class="gascv" width="420" height="240" style="width:100%;max-width:420px;background:var(--card2,#f4f8fb);border-radius:12px;border:1px solid var(--line,#dde)"></canvas>
+   <p class="small muted" style="margin:4px 0">Each dot stands for about 5 × 10²⁰ molecules. The grey wall moves as V changes.</p></div>
+   <div><label class="small">Amount, n: <b data-o="n"></b> mol</label><input type="range" data-s="n" min="0.02" max="0.30" step="0.01" value="0.10" style="width:100%">
+   <label class="small">Volume, V: <b data-o="V"></b> dm³</label><input type="range" data-s="V" min="0.5" max="5" step="0.1" value="2.5" style="width:100%">
+   <label class="small">Temperature, T: <b data-o="T"></b> K (<span data-o="C"></span> °C)</label><input type="range" data-s="T" min="100" max="900" step="5" value="300" style="width:100%">
+   <label class="small muted">Hold constant while you change the others:</label>
+   <select class="sel" data-hold style="width:100%"><option value="">nothing (p changes)</option><option value="p">pressure (V follows T and n)</option></select>
+   <div class="eq" data-res style="text-align:left;margin-top:8px"></div></div></div>
+   <details style="margin-top:10px"><summary><b>Solver:</b> find any unknown, with working</summary>
+   <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:6px">
+    <select class="sel" data-u><option value="p">find p</option><option value="V">find V</option><option value="n">find n</option><option value="T">find T</option><option value="M">find M (from mass)</option></select></div>
+   <div data-ins class="row" style="flex-wrap:wrap;gap:6px;margin-top:6px"></div><div class="simfb ok" data-w style="margin-top:8px"></div></details>`;
+  const q = s => el.querySelector(s), st = { n: .1, V: 2.5, T: 300 }; let pHeld = null;
+  const cv = q('.gascv'), cx = cv.getContext('2d'); let parts = [];
+  function sync() {
+    const N = Math.round(st.n * 400); while (parts.length < N) parts.push({ x: Math.random(), y: Math.random(), a: Math.random() * 6.283 }); parts.length = N;
+    const p = st.n * R * st.T / (st.V / 1000);
+    q('[data-o=n]').textContent = st.n.toFixed(2); q('[data-o=V]').textContent = st.V.toFixed(1); q('[data-o=T]').textContent = st.T; q('[data-o=C]').textContent = st.T - 273;
+    q('[data-res]').innerHTML = `p = nRT / V<br>= ${st.n.toFixed(2)} × 8.31 × ${st.T} / (${st.V.toFixed(1)} × 10⁻³ m³)<br>= <b>${f(p / 1000)} kPa</b> <span class="small muted">(${f(p)} Pa)</span>`;
+  }
+  el.querySelectorAll('[data-s]').forEach(r => r.addEventListener('input', () => {
+    const k = r.dataset.s; st[k] = +r.value;
+    if (pHeld && k !== 'V') { st.V = Math.min(5, Math.max(.5, st.n * R * st.T / pHeld * 1000)); q('[data-s=V]').value = st.V }
+    if (pHeld && k === 'V') pHeld = st.n * R * st.T / (st.V / 1000);
+    sync();
+  }));
+  q('[data-hold]').onchange = e => { pHeld = e.target.value ? st.n * R * st.T / (st.V / 1000) : null };
+  function frame() {
+    if (!el.isConnected) return;
+    const W = cv.width, H = cv.height, w = 40 + (W - 60) * st.V / 5, sp = 0.0016 * Math.sqrt(st.T / 300) * 5 / st.V;
+    cx.clearRect(0, 0, W, H); cx.fillStyle = '#9aa6b2'; cx.fillRect(w, 8, 8, H - 16); cx.strokeStyle = '#9aa6b2'; cx.lineWidth = 3; cx.strokeRect(8, 8, w - 8, H - 16);
+    const hot = Math.min(1, (st.T - 100) / 800); cx.fillStyle = `rgb(${40 + 200 * hot},${120 - 60 * hot},${220 - 180 * hot})`;
+    for (const P of parts) { P.x += Math.cos(P.a) * sp; P.y += Math.sin(P.a) * sp * w / (H - 16);
+      if (P.x < 0 || P.x > 1) { P.a = Math.PI - P.a; P.x = Math.max(0, Math.min(1, P.x)) } if (P.y < 0 || P.y > 1) { P.a = -P.a; P.y = Math.max(0, Math.min(1, P.y)) }
+      cx.beginPath(); cx.arc(14 + P.x * (w - 20), 14 + P.y * (H - 28), 3, 0, 6.283); cx.fill() }
+    requestAnimationFrame(frame);
+  }
+  const U = { p: [['kPa', 1e3], ['Pa', 1], ['atm', 101e3]], V: [['dm³', 1e-3], ['cm³', 1e-6], ['m³', 1]], T: [['K', 0], ['°C', 273]], n: [['mol', 1]], m: [['g', 1]] };
+  const NAME = { p: 'pressure', V: 'volume', T: 'temperature', n: 'amount', m: 'mass' }, DEF = { p: 101, V: 2.4, T: 298, n: 0.1, m: 0.5 };
+  function ins() {
+    const u = q('[data-u]').value, need = u === 'M' ? ['m', 'p', 'V', 'T'] : ['p', 'V', 'n', 'T'].filter(k => k !== u);
+    q('[data-ins]').innerHTML = need.map(k => `<span style="display:inline-flex;gap:4px;align-items:center"><span class="small">${k === 'm' ? 'mass' : k}</span><input class="sel" type="number" step="any" data-v="${k}" value="${DEF[k]}" style="width:90px" aria-label="${NAME[k]}"><select class="sel" data-uu="${k}">${U[k].map((x, i) => `<option value="${i}">${x[0]}</option>`).join('')}</select></span>`).join('');
+    q('[data-ins]').querySelectorAll('input,select').forEach(x => x.addEventListener('input', solve)); solve();
+  }
+  function solve() {
+    const u = q('[data-u]').value, v = {}, line = [];
+    q('[data-ins]').querySelectorAll('[data-v]').forEach(i => {
+      const k = i.dataset.v, x = +i.value, ui = U[k][+q(`[data-uu=${k}]`).value];
+      v[k] = k === 'T' ? x + ui[1] : x * ui[1];
+      if (k === 'T' && ui[1]) line.push(`T = ${x} + 273 = ${v.T} K`); else if (k !== 'n' && k !== 'm' && ui[1] !== 1 && k !== 'T') line.push(`${k} = ${x} ${ui[0]} = ${f(v[k])} ${k === 'p' ? 'Pa' : 'm³'}`);
+    });
+    let r;
+    if (u === 'p') r = `p = nRT / V = ${f(v.n)} × 8.31 × ${f(v.T)} / ${f(v.V)} = <b>${f(v.n * R * v.T / v.V)} Pa</b> = ${f(v.n * R * v.T / v.V / 1000)} kPa`;
+    if (u === 'V') { const V = v.n * R * v.T / v.p; r = `V = nRT / p = ${f(v.n)} × 8.31 × ${f(v.T)} / ${f(v.p)} = <b>${f(V)} m³</b> = ${f(V * 1000)} dm³ = ${f(V * 1e6)} cm³` }
+    if (u === 'n') r = `n = pV / RT = ${f(v.p)} × ${f(v.V)} / (8.31 × ${f(v.T)}) = <b>${f(v.p * v.V / (R * v.T))} mol</b>`;
+    if (u === 'T') { const T = v.p * v.V / (v.n * R); r = `T = pV / nR = ${f(v.p)} × ${f(v.V)} / (${f(v.n)} × 8.31) = <b>${f(T)} K</b> (${f(T - 273)} °C)` }
+    if (u === 'M') { const n = v.p * v.V / (R * v.T); r = `n = pV / RT = ${f(n)} mol<br>M = m / n = ${f(v.m)} / ${f(n)} = <b>${f(v.m / n)} g mol⁻¹</b>` }
+    q('[data-w]').innerHTML = (line.length ? '<span class="small muted">Convert to SI first:</span><br>' + line.join('<br>') + '<br>' : '') + r;
+  }
+  q('[data-u]').onchange = ins; ins(); sync(); frame();
+};
+
+/* ---------------- Chapter 4: structure detective ---------------- */
+const STRUCT = [
+ // name, m.p./°C, conducts solid, conducts liquid, in water, answer (0 ionic,1 simple,2 giant cov,3 metallic), explanation
+ ['potassium iodide', 681, 'no', 'yes', 'dissolves; solution conducts', 0, 'Conducts only when molten or dissolved: the ions become free to move.'],
+ ['silicon carbide', 2730, 'no', 'no', 'insoluble', 2, 'Never conducts and has a very high melting point: strong covalent bonds throughout a giant lattice.'],
+ ['naphthalene', 80, 'no', 'no', 'insoluble (dissolves in hexane)', 1, 'Low melting point and no charged particles: weak forces between molecules.'],
+ ['magnesium', 650, 'yes', 'yes', 'reacts very slowly', 3, 'Conducts as a solid: delocalised electrons.'],
+ ['calcium oxide', 2613, 'no', 'yes', 'reacts to form Ca(OH)₂', 0, 'Conducts only when molten; very high m.p. because Ca²⁺ and O²⁻ are doubly charged.'],
+ ['sulfur (S₈)', 115, 'no', 'no', 'insoluble', 1, 'S₈ molecules held by id-id forces: low m.p., no conduction.'],
+ ['diamond', 3550, 'no', 'no', 'insoluble', 2, 'Each C has four strong covalent bonds; no delocalised electrons.'],
+ ['graphite', 3650, 'yes', '—', 'insoluble', 2, 'The exception: giant covalent, but one delocalised electron per C lets it conduct. Its very high m.p. rules out a metal.'],
+ ['iron', 1538, 'yes', 'yes', 'insoluble (rusts slowly)', 3, 'Conducts as a solid and liquid: metallic.'],
+ ['glucose', 146, 'no', 'no', 'dissolves; solution does not conduct', 1, 'Dissolves because it hydrogen bonds with water, but makes no ions: simple molecular.'],
+ ['aluminium oxide', 2072, 'no', 'yes', 'insoluble', 0, 'Conducts when molten, so ionic, even though it does not dissolve.'],
+ ['tetrachloromethane, CCl₄', -23, 'no', 'no', 'insoluble (dissolves in hexane)', 1, 'A liquid at room temperature that never conducts: simple molecular.'],
+ ['silicon(IV) oxide', 1710, 'no', 'no', 'insoluble', 2, 'Giant covalent Si–O network.'],
+ ['ice', 0, 'no', 'no', '— (it is water)', 1, 'H₂O molecules held by hydrogen bonds; the O–H bonds do not break on melting.'],
+ ['sodium', 98, 'yes', 'yes', 'reacts vigorously', 3, 'Low m.p. for a metal (one delocalised electron per atom), but it conducts as a solid.'],
+];
+SIMS.structid = function (el) {
+  const NM = ['giant ionic', 'simple molecular', 'giant molecular (covalent)', 'giant metallic'];
+  let order = STRUCT.map((_, i) => i).sort(() => Math.random() - .5), k = 0, ok = 0, done = 0;
+  el.innerHTML = `<div class="card" style="box-shadow:none"><p class="small muted" style="margin:0">Card <b data-k></b> of ${STRUCT.length} · score <b data-sc>0</b></p>
+   <table class="t" style="margin:8px 0"><tbody data-tb></tbody></table>
+   <div class="row" style="flex-wrap:wrap;gap:6px">${NM.map((n, i) => `<button class="btn alt" data-pick="${i}">${n}</button>`).join('')}</div>
+   <div class="simfb" data-fb aria-live="polite"></div><div class="row" style="margin-top:8px"><button class="btn y" data-nx>Next card</button></div></div>`;
+  const q = s => el.querySelector(s), btns = [...el.querySelectorAll('[data-pick]')];
+  function show() {
+    const it = STRUCT[order[k]]; q('[data-k]').textContent = k + 1;
+    q('[data-tb]').innerHTML = `<tr><td>melting point</td><td><b>${it[1]} °C</b></td></tr><tr><td>conducts as a solid?</td><td><b>${it[2]}</b></td></tr><tr><td>conducts when molten?</td><td><b>${it[3]}</b></td></tr><tr><td>with water</td><td><b>${it[4]}</b></td></tr>`;
+    btns.forEach(b => { b.disabled = false; b.className = 'btn alt' }); q('[data-fb]').className = 'simfb'; q('[data-fb]').innerHTML = '';
+  }
+  btns.forEach(b => b.onclick = () => {
+    const it = STRUCT[order[k]], g = +b.dataset.pick, right = g === it[5]; done++; if (right) ok++;
+    q('[data-sc]').textContent = `${ok}/${done}`; btns.forEach(x => x.disabled = true); btns[it[5]].className = 'btn y';
+    q('[data-fb]').className = 'simfb ' + (right ? 'ok' : 'bad');
+    q('[data-fb]').innerHTML = `${right ? '✔ Correct.' : '✘ Not quite.'} This is <b>${it[0]}</b>: ${NM[it[5]]}. ${it[6]}`;
+  });
+  q('[data-nx]').onclick = () => { k = (k + 1) % STRUCT.length; if (!k) order.sort(() => Math.random() - .5); show() };
+  show();
+};
+
+/* ---------------- Chapter 5: energy profile builder ---------------- */
+SIMS.profile = function (el) {
+  el.innerHTML = `<div class="simgrid"><div><svg class="pfsvg" viewBox="0 0 420 300" width="100%" style="max-width:440px;background:var(--card2,#f4f8fb);border-radius:12px" font-family="Inter" font-size="13"></svg></div>
+   <div><label class="small">ΔH: <b data-o="dh"></b> kJ mol⁻¹</label><input type="range" data-s="dh" min="-200" max="200" step="5" value="-80" style="width:100%">
+   <label class="small">E<sub>a</sub> (forward): <b data-o="ea"></b> kJ mol⁻¹</label><input type="range" data-s="ea" min="10" max="300" step="5" value="120" style="width:100%">
+   <label style="display:flex;gap:8px;align-items:center;margin:8px 0;cursor:pointer"><input type="checkbox" data-cat style="width:20px;height:20px"> add a catalyst</label>
+   <div class="simfb ok" data-out></div></div></div>`;
+  const q = s => el.querySelector(s), sv = q('.pfsvg');
+  function draw() {
+    let dh = +q('[data-s=dh]').value, ea = +q('[data-s=ea]').value;
+    if (ea < dh) { ea = dh + 5; q('[data-s=ea]').value = ea }   // peak can never sit below the products
+    const cat = q('[data-cat]').checked, eac = Math.max(Math.max(dh, 0) + 5, Math.round(ea * 0.55));
+    q('[data-o=dh]').textContent = (dh > 0 ? '+' : '') + dh; q('[data-o=ea]').textContent = ea;
+    const top = Math.max(ea, dh) + 20, bot = Math.min(0, dh) - 20, Y = e => 270 - (e - bot) / (top - bot) * 240;
+    const yr = Y(0), yp = Y(dh), yk = Y(ea), yc = Y(eac);
+    const curve = (yy) => `M30 ${yr} L110 ${yr} C 170 ${yr}, 170 ${yy}, 210 ${yy} C 250 ${yy}, 250 ${yp}, 310 ${yp} L400 ${yp}`;
+    sv.innerHTML = `<defs><marker id="pa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+     <line x1="20" y1="20" x2="20" y2="280" stroke="#667"/><text x="8" y="150" transform="rotate(-90 8 150)" text-anchor="middle" fill="#556">energy</text><text x="215" y="296" text-anchor="middle" fill="#556">progress of reaction</text>
+     <path d="${curve(yk)}" fill="none" stroke="#0b7ea3" stroke-width="3"/>
+     ${cat ? `<path d="${curve(yc)}" fill="none" stroke="#e0890b" stroke-width="3" stroke-dasharray="7 5"/>` : ''}
+     <text x="34" y="${yr + 17}">reactants</text><text x="398" y="${yp + 17}" text-anchor="end">products</text>
+     <line x1="85" y1="${yr}" x2="85" y2="${yk + 2}" stroke="#c0392b" stroke-width="2" color="#c0392b" marker-end="url(#pa)"/><text x="90" y="${(yr + yk) / 2}" fill="#c0392b">E<tspan font-size="10" dy="3">a</tspan></text>
+     ${cat ? `<line x1="140" y1="${yr}" x2="140" y2="${yc + 2}" stroke="#e0890b" stroke-width="2" color="#e0890b" marker-end="url(#pa)"/><text x="145" y="${(yr + yc) / 2 + 14}" fill="#e0890b">E<tspan font-size="10" dy="3">a</tspan><tspan dy="-3">(cat)</tspan></text>` : ''}
+     ${dh ? `<line x1="355" y1="${yr}" x2="355" y2="${yp + (dh > 0 ? 2 : -2)}" stroke="#2e7d32" stroke-width="2" color="#2e7d32" marker-end="url(#pa)"/><line x1="300" y1="${yr}" x2="370" y2="${yr}" stroke="#2e7d32" stroke-dasharray="4 4"/><text x="360" y="${(yr + yp) / 2}" fill="#2e7d32">ΔH</text>` : ''}`;
+    q('[data-out]').innerHTML = `${dh < 0 ? '<b>Exothermic</b>: products are lower than reactants.' : dh > 0 ? '<b>Endothermic</b>: products are higher than reactants.' : 'Thermoneutral (ΔH = 0).'}<br>
+      E<sub>a</sub>(reverse) = E<sub>a</sub> − ΔH = ${ea} − (${dh}) = <b>${ea - dh} kJ mol⁻¹</b>${cat ? `<br>With the catalyst: E<sub>a</sub> ≈ ${eac} kJ mol⁻¹. ΔH is <b>unchanged</b>.` : ''}`;
+  }
+  el.querySelectorAll('input').forEach(i => i.addEventListener('input', draw)); draw();
+};
+
+/* ---------------- Chapter 5: Hess's law calculator ---------------- */
+const HD = { // ΔHf, ΔHc / kJ mol⁻¹ (standard data-book values)
+ 'C(s)': [0, -393.5], 'H₂(g)': [0, -285.8], 'O₂(g)': [0, 0], 'N₂(g)': [0, 0], 'CO₂(g)': [-393.5, 0], 'H₂O(l)': [-285.8, 0], 'H₂O(g)': [-241.8, null],
+ 'CO(g)': [-110.5, -283.0], 'CH₄(g)': [-74.8, -890.3], 'C₂H₆(g)': [-84.7, -1559.7], 'C₂H₄(g)': [52.2, -1411.0], 'C₃H₈(g)': [-103.8, -2219.2],
+ 'CH₃OH(l)': [-238.7, -726.0], 'C₂H₅OH(l)': [-277.7, -1367.3], 'NH₃(g)': [-46.1, null], 'NO(g)': [90.3, null] };
+const HR = [
+ [[[1, 'C₂H₄(g)'], [1, 'H₂(g)']], [[1, 'C₂H₆(g)']]],
+ [[[1, 'C₂H₄(g)'], [1, 'H₂O(l)']], [[1, 'C₂H₅OH(l)']]],
+ [[[1, 'CO(g)'], [2, 'H₂(g)']], [[1, 'CH₃OH(l)']]],
+ [[[2, 'CO(g)'], [1, 'O₂(g)']], [[2, 'CO₂(g)']]],
+ [[[1, 'C(s)'], [2, 'H₂(g)']], [[1, 'CH₄(g)']]],
+ [[[3, 'C(s)'], [4, 'H₂(g)']], [[1, 'C₃H₈(g)']]],
+ [[[1, 'CH₄(g)'], [2, 'O₂(g)']], [[1, 'CO₂(g)'], [2, 'H₂O(l)']]],
+ [[[4, 'NH₃(g)'], [5, 'O₂(g)']], [[4, 'NO(g)'], [6, 'H₂O(g)']]],
+];
+SIMS.hess = function (el) {
+  const side = a => a.map(([n, s]) => (n > 1 ? n : '') + s).join(' + ');
+  el.innerHTML = `<div class="row" style="flex-wrap:wrap;gap:6px"><select class="sel" data-r style="flex:1;min-width:240px">${HR.map((r, i) => `<option value="${i}">${side(r[0])} → ${side(r[1])}</option>`).join('')}</select>
+   <select class="sel" data-d><option value="0">use ΔH<sub>f</sub> data</option><option value="1">use ΔH<sub>c</sub> data</option></select></div>
+   <table class="t" style="margin-top:8px"><thead><tr><th>substance</th><th>ΔH<sub>f</sub> / kJ mol⁻¹</th><th>ΔH<sub>c</sub> / kJ mol⁻¹</th></tr></thead><tbody data-tb></tbody></table>
+   <div class="simfb ok" data-w style="margin-top:8px"></div>`;
+  const q = s => el.querySelector(s), r1 = x => (Math.round(x * 10) / 10).toFixed(1), sg = x => (x < 0 ? '(' + r1(x) + ')' : r1(x));
+  function go() {
+    const R = HR[+q('[data-r]').value], d = +q('[data-d]').value, all = [...R[0], ...R[1]];
+    q('[data-tb]').innerHTML = all.map(([, s]) => `<tr><td>${s}</td><td>${r1(HD[s][0])}</td><td>${HD[s][1] === null ? '—' : r1(HD[s][1])}</td></tr>`).join('');
+    if (all.some(([, s]) => HD[s][d] === null)) { q('[data-w]').className = 'simfb bad'; q('[data-w]').innerHTML = 'ΔH<sub>c</sub> data cannot be used here: some substances (such as NH₃ or NO) have no simple combustion value. Use ΔH<sub>f</sub>.'; return }
+    const sum = a => a.reduce((t, [n, s]) => t + n * HD[s][d], 0), terms = a => a.map(([n, s]) => (n > 1 ? n : '') + sg(HD[s][d])).join(' + ');
+    const P = sum(R[1]), Rr = sum(R[0]), dH = d ? Rr - P : P - Rr;
+    q('[data-w]').className = 'simfb ok';
+    q('[data-w]').innerHTML = d ? `ΔH = ΣΔH<sub>c</sub>(reactants) − ΣΔH<sub>c</sub>(products)<br>= [${terms(R[0])}] − [${terms(R[1])}]<br>= ${r1(Rr)} − (${r1(P)}) = <b>${r1(dH)} kJ mol⁻¹</b>`
+      : `ΔH = ΣΔH<sub>f</sub>(products) − ΣΔH<sub>f</sub>(reactants)<br>= [${terms(R[1])}] − [${terms(R[0])}]<br>= ${r1(P)} − (${r1(Rr)}) = <b>${r1(dH)} kJ mol⁻¹</b>`;
+  }
+  q('[data-r]').onchange = go; q('[data-d]').onchange = go; go();
+};
+
+/* ---------------- Chapter 6: oxidation number finder ---------------- */
+SIMS.oxnum = function (el, EL) {
+  const E = {}; EL.forEach(e => E[e.s] = e);
+  const PEROX = { 'H2O2': 1, 'Na2O2': 1, 'K2O2': 1, 'BaO2': 1, 'CaO2': 1 };
+  const sgn = x => (x > 0 ? '+' : x < 0 ? '−' : '') + (Number.isInteger(x) ? Math.abs(x) : (Math.round(Math.abs(x) * 100) / 100));
+  el.innerHTML = `<div class="row" style="flex-wrap:wrap;gap:6px;align-items:center"><input class="sel" data-f value="Cr2O7" style="flex:1;min-width:140px;font-size:18px" aria-label="Formula" autocomplete="off" spellcheck="false">
+   <label class="small">charge <select class="sel" data-q>${[-3, -2, -1, 0, 1, 2, 3].map(q => `<option value="${q}" ${q === -2 ? 'selected' : ''}>${q > 0 ? '+' + q : q}</option>`).join('')}</select></label></div>
+   <p class="small muted" style="margin:6px 0">Try: SO4 (−2), NH4 (+1), KMnO4, H2O2, NaH, OF2, PCl5, S4O6 (−2), Fe3O4, C2H5OH → type C2H6O.</p>
+   <div class="simfb ok" data-w></div>`;
+  const q = s => el.querySelector(s);
+  function go() {
+    const f = q('[data-f]').value.trim(), Q = +q('[data-q]').value, w = q('[data-w]');
+    let P; try { P = parseFormula(f, EL) } catch (e) { w.className = 'simfb bad'; w.textContent = String(e) + ' (elements H to Kr only)'; return }
+    const at = P.atoms, els = Object.keys(at), on = {}, why = [];
+    const metalOnly = x => els.every(e => e === x || E[e].g <= 2 || e === 'Al');
+    for (const e of els) {
+      if (els.length === 1) { on[e] = Q / at[e]; why.push(`${e}: an element (or ion of one element) — oxidation number = charge ÷ atoms`); continue }
+      if (e === 'F') { on.F = -1; why.push('F is always −1') }
+      else if (E[e].g === 1 && e !== 'H') { on[e] = 1; why.push(`${e} (Group 1) is always +1`) }
+      else if (E[e].g === 2) { on[e] = 2; why.push(`${e} (Group 2) is always +2`) }
+      else if (e === 'Al') { on.Al = 3; why.push('Al is +3') }
+      else if (e === 'H') { if (els.length === 2 && metalOnly('H')) { on.H = -1; why.push('H bonded to a metal (a hydride) is −1') } else { on.H = 1; why.push('H is +1 with non-metals') } }
+    }
+    if ('O' in at && !('O' in on)) {
+      if (PEROX[f.replace(/\s/g, '')]) { on.O = -1; why.push('this is a peroxide: O is −1') }
+      else if ('F' in at) { /* OF2: solve O */ }
+      else { on.O = -2; why.push('O is −2 (except in peroxides and with F)') }
+    }
+    let unk = els.filter(e => !(e in on));
+    if (unk.length === 2) {         // give the more electronegative one its usual negative value
+      unk.sort((a, b) => E[b].en - E[a].en); const n = unk[0], g = E[n].g, v = g >= 13 ? g - 18 : null;
+      if (v !== null) { on[n] = v; why.push(`${n} is the more electronegative of ${unk.join(' and ')}, so it takes its usual negative value (${sgn(v)})`); unk = [unk[1]] }
+    }
+    if (unk.length > 1) { w.className = 'simfb bad'; w.innerHTML = `Too many unknowns (${unk.join(', ')}). Oxidation numbers here need more information about the structure.`; return }
+    if (unk.length === 1) {
+      const u = unk[0], known = els.filter(e => e !== u).reduce((t, e) => t + at[e] * on[e], 0); on[u] = (Q - known) / at[u];
+      why.push(`Sum of oxidation numbers = charge (${sgn(Q) || 0}): ${at[u] > 1 ? at[u] : ''}${u} + ${els.filter(e => e !== u).map(e => `${at[e] > 1 ? at[e] + '(' + sgn(on[e]) + ')' : sgn(on[e])}`).join(' + ')} = ${Q}, so ${u} = <b>${sgn(on[u])}</b>${Number.isInteger(on[u]) ? '' : ' (an average value)'}`);
+    }
+    w.className = 'simfb ok';
+    w.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px">${els.map(e => `<span style="padding:6px 10px;border-radius:10px;background:var(--card,#fff);border:1px solid var(--line,#ddd)"><b>${e}</b> ${sgn(on[e]) || '0'}</span>`).join('')}</div><ol class="small" style="margin:0;padding-left:20px">${why.map(x => `<li>${x}</li>`).join('')}</ol>`;
+  }
+  q('[data-f]').addEventListener('input', go); q('[data-q]').onchange = go; go();
+};
+
+/* ---------------- Chapter 6: redox equation balancer (step by step) ---------------- */
+const RB = [
+ { t: 'Fe²⁺ + MnO₄⁻ (acid)', s: ['Fe: +2 → +3 (loses 1 e⁻). Mn: +7 → +2 (gains 5 e⁻).', 'Half-equations:<br>Fe²⁺ → Fe³⁺ + e⁻<br>MnO₄⁻ + 8H⁺ + 5e⁻ → Mn²⁺ + 4H₂O', 'Make the electrons equal: multiply the iron half-equation by 5.', 'Add and cancel the electrons:<br><b>MnO₄⁻ + 5Fe²⁺ + 8H⁺ → Mn²⁺ + 5Fe³⁺ + 4H₂O</b>', 'Check charges: left −1 + 10 + 8 = +17; right +2 + 15 = +17 ✔'] },
+ { t: 'Cr₂O₇²⁻ + I⁻ (acid)', s: ['Cr: +6 → +3 (each gains 3, so 6 per Cr₂O₇²⁻). I: −1 → 0 (loses 1 each).', 'Half-equations:<br>2I⁻ → I₂ + 2e⁻<br>Cr₂O₇²⁻ + 14H⁺ + 6e⁻ → 2Cr³⁺ + 7H₂O', 'Multiply the iodide half-equation by 3.', 'Add:<br><b>Cr₂O₇²⁻ + 6I⁻ + 14H⁺ → 2Cr³⁺ + 3I₂ + 7H₂O</b>', 'Check charges: −2 − 6 + 14 = +6; right 2 × 3 = +6 ✔'] },
+ { t: 'Cu + HNO₃ (dilute) → NO', s: ['Cu: 0 → +2 (loses 2). N: +5 → +2 in NO (gains 3).', 'Electrons: 3 Cu lose 6; 2 N gain 6.', 'So 3Cu : 2NO. Extra nitrate is needed to make 3Cu(NO₃)₂: that is 6 more HNO₃ that are not reduced.', '<b>3Cu + 8HNO₃ → 3Cu(NO₃)₂ + 2NO + 4H₂O</b>', 'Check H: 8 = 8 ✔; O: 24 = 18 + 2 + 4 ✔'] },
+ { t: 'Cl₂ + hot NaOH (disproportionation)', s: ['Cl: 0 → −1 in NaCl (gains 1); 0 → +5 in NaClO₃ (loses 5).', 'For electrons to balance, 5 Cl atoms are reduced for every 1 oxidised.', 'That needs 6 Cl atoms = 3Cl₂, giving 5NaCl + NaClO₃.', '<b>3Cl₂ + 6NaOH → 5NaCl + NaClO₃ + 3H₂O</b>', 'Check O: 6 = 3 + 3 ✔'] },
+ { t: 'H₂O₂ + MnO₄⁻ (acid)', s: ['O in H₂O₂: −1 → 0 in O₂ (each O loses 1, so 2 per H₂O₂). Mn: +7 → +2 (gains 5).', 'Half-equations:<br>H₂O₂ → O₂ + 2H⁺ + 2e⁻<br>MnO₄⁻ + 8H⁺ + 5e⁻ → Mn²⁺ + 4H₂O', 'Multiply by 5 and by 2 so that 10 electrons cancel.', 'Add, then cancel 10H⁺ from both sides:<br><b>2MnO₄⁻ + 5H₂O₂ + 6H⁺ → 2Mn²⁺ + 5O₂ + 8H₂O</b>', 'Check charges: −2 + 6 = +4; right +4 ✔'] },
+ { t: 'S + conc. HNO₃ → H₂SO₄ + NO₂', s: ['S: 0 → +6 (loses 6). N: +5 → +4 (gains 1).', 'So 1 S : 6 HNO₃ (6 NO₂).', 'Balance H with water: 6 H on the left; 2 in H₂SO₄, so 2H₂O.', '<b>S + 6HNO₃ → H₂SO₄ + 6NO₂ + 2H₂O</b>', 'Check O: 18 = 4 + 12 + 2 ✔'] },
+];
+SIMS.balance = function (el) {
+  el.innerHTML = `<select class="sel" data-r style="width:100%">${RB.map((r, i) => `<option value="${i}">${r.t}</option>`).join('')}</select>
+   <ol data-st style="margin:10px 0;padding-left:22px;display:grid;gap:8px"></ol><div class="row"><button class="btn y" data-n>Show next step</button><button class="btn alt" data-a>Show all</button></div>`;
+  const q = s => el.querySelector(s); let k = 0;
+  function show() { const r = RB[+q('[data-r]').value]; q('[data-st]').innerHTML = r.s.slice(0, k).map(x => `<li>${x}</li>`).join(''); q('[data-n]').disabled = k >= r.s.length }
+  q('[data-r]').onchange = () => { k = 0; show() }; q('[data-n]').onclick = () => { k++; show() }; q('[data-a]').onclick = () => { k = 99; show() }; show();
+};
 })();
