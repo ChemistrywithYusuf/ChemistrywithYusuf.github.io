@@ -926,4 +926,144 @@ SIMS.nh3game = function (el) {
   bs.forEach(b => b.onclick = () => { const it = NHQ[order[k]], right = (b.dataset.v === '1') === it[1]; n++; if (right) ok++; q('[data-sc]').textContent = `${ok}/${n}`; bs.forEach(x => x.disabled = true); q('[data-fb]').className = 'simfb ' + (right ? 'ok' : 'bad'); q('[data-fb]').innerHTML = `${right ? '✔' : '✘'} ${it[1] ? 'Ammonia is released.' : 'No ammonia.'} ${it[2]}` });
   q('[data-nx]').onclick = () => { k = (k + 1) % NHQ.length; if (!k) order.sort(() => Math.random() - .5); show() }; show();
 };
+
+/* ---------------- Chapter 13: isomer explorer ---------------- */
+const ISO = {
+ 'C₅H₁₂': [['pentane', 'CH₃CH₂CH₂CH₂CH₃', ''], ['2-methylbutane', '(CH₃)₂CHCH₂CH₃', ''], ['2,2-dimethylpropane', 'C(CH₃)₄', '']],
+ 'C₄H₈ (incl. rings)': [['but-1-ene', 'CH₂=CHCH₂CH₃', ''], ['but-2-ene', 'CH₃CH=CHCH₃', 'cis/trans'], ['methylpropene', 'CH₂=C(CH₃)₂', ''], ['cyclobutane', '(CH₂)₄ ring', ''], ['methylcyclopropane', 'CH₃-cyclopropane', '']],
+ 'C₄H₁₀O': [['butan-1-ol', 'CH₃CH₂CH₂CH₂OH', 'primary alcohol'], ['butan-2-ol', 'CH₃CH(OH)CH₂CH₃', 'secondary alcohol; optical (chiral C2)'], ['2-methylpropan-1-ol', '(CH₃)₂CHCH₂OH', 'primary alcohol'], ['2-methylpropan-2-ol', '(CH₃)₃COH', 'tertiary alcohol'], ['methoxypropane', 'CH₃OCH₂CH₂CH₃', 'ether'], ['2-methoxypropane', 'CH₃OCH(CH₃)₂', 'ether'], ['ethoxyethane', 'CH₃CH₂OCH₂CH₃', 'ether']],
+ 'C₃H₆Cl₂': [['1,1-dichloropropane', 'CHCl₂CH₂CH₃', ''], ['1,2-dichloropropane', 'CH₂ClCHClCH₃', 'optical (chiral C2)'], ['1,3-dichloropropane', 'CH₂ClCH₂CH₂Cl', ''], ['2,2-dichloropropane', 'CH₃CCl₂CH₃', '']],
+ 'C₅H₁₀ (alkenes)': [['pent-1-ene', 'CH₂=CHCH₂CH₂CH₃', ''], ['pent-2-ene', 'CH₃CH=CHCH₂CH₃', 'cis/trans'], ['2-methylbut-1-ene', 'CH₂=C(CH₃)CH₂CH₃', ''], ['3-methylbut-1-ene', 'CH₂=CHCH(CH₃)₂', ''], ['2-methylbut-2-ene', '(CH₃)₂C=CHCH₃', '']],
+ 'C₃H₆O (main isomers)': [['propanal', 'CH₃CH₂CHO', 'aldehyde'], ['propanone', 'CH₃COCH₃', 'ketone'], ['prop-2-en-1-ol', 'CH₂=CHCH₂OH', 'alkene + alcohol'], ['methoxyethene', 'CH₂=CHOCH₃', 'alkene + ether'], ['cyclopropanol', 'ring', ''], ['oxetane, methyloxirane', 'rings (ethers)', 'methyloxirane is chiral']],
+};
+SIMS.isomers = function (el) {
+  el.innerHTML = `<div class="row" style="flex-wrap:wrap;gap:6px">${Object.keys(ISO).map((k, i) => `<button class="btn ${i ? 'alt' : 'y'}" data-f="${k}">${k}</button>`).join('')}</div><div data-o style="margin-top:10px"></div>`;
+  const q = s => el.querySelector(s);
+  function show(k) {
+    el.querySelectorAll('[data-f]').forEach(b => b.className = 'btn ' + (b.dataset.f === k ? 'y' : 'alt'));
+    const L = ISO[k], stereo = L.filter(x => /cis|optical|chiral/.test(x[2])).length;
+    q('[data-o]').innerHTML = `<div style="overflow-x:auto"><table class="t"><thead><tr><th>#</th><th>name</th><th>structure</th><th>notes</th></tr></thead><tbody>${L.map((x, i) => `<tr><td>${i + 1}</td><td><b>${x[0]}</b></td><td>${x[1]}</td><td class="small">${x[2]}</td></tr>`).join('')}</tbody></table></div>
+     <p class="small muted">${L.length} structural isomers shown. ${stereo ? `${stereo} of them also ${stereo > 1 ? 'have' : 'has'} stereoisomers (each cis/trans pair or chiral centre doubles the count).` : 'None has stereoisomers.'}</p>`;
+  }
+  el.querySelectorAll('[data-f]').forEach(b => b.onclick = () => show(b.dataset.f)); show(Object.keys(ISO)[0]);
+};
+
+/* ---------------- Chapter 13: chiral centre hunter ---------------- */
+const CHI = [
+ [['CH₃', 'CH(OH)', 'CH₂', 'CH₃'], [1], 'butan-2-ol'],
+ [['CH₃', 'CH(OH)', 'CH₃'], [], 'propan-2-ol'],
+ [['CH₃', 'CH(NH₂)', 'COOH'], [1], 'alanine'],
+ [['HOOC', 'CH₂', 'C(OH)(COOH)', 'CH₂', 'COOH'], [], 'citric acid'],
+ [['CH₃', 'CH(OH)', 'CH(NH₂)', 'COOH'], [1, 2], 'threonine'],
+ [['CH₃', 'CHBr', 'CHBr', 'CH₂', 'CH₃'], [1, 2], '2,3-dibromopentane'],
+ [['(CH₃)₂', 'CH', 'CH₂', 'CH(CH₃)', 'CH₂', 'CH₃'], [3], '2,4-dimethylhexane'],
+ [['HOCH₂', 'CH(OH)', 'CH(OH)', 'CHO'], [1, 2], 'an open-chain sugar (erythrose)'],
+];
+SIMS.chiral = function (el) {
+  let k = 0, sel = new Set();
+  el.innerHTML = `<p class="small muted" style="margin:0">Molecule <b data-k></b> of ${CHI.length}.</p><p data-nm class="small"></p>
+   <div data-row class="row" style="flex-wrap:wrap;gap:4px;align-items:center"></div><div class="row" style="margin-top:10px"><button class="btn y" data-c>Check</button><button class="btn alt" data-nx>Next molecule</button></div><div class="simfb" data-fb></div>`;
+  const q = s => el.querySelector(s);
+  function show() {
+    const [g, , nm] = CHI[k]; sel = new Set(); q('[data-k]').textContent = k + 1; q('[data-nm]').textContent = nm; q('[data-fb]').className = 'simfb'; q('[data-fb]').innerHTML = '';
+    q('[data-row]').innerHTML = g.map((x, i) => `${i ? '<span>–</span>' : ''}<button class="btn alt" data-g="${i}" style="font-size:18px;padding:8px 12px">${x}</button>`).join('');
+    q('[data-row]').querySelectorAll('[data-g]').forEach(b => b.onclick = () => { const i = +b.dataset.g; sel.has(i) ? sel.delete(i) : sel.add(i); b.className = 'btn ' + (sel.has(i) ? 'y' : 'alt') });
+  }
+  q('[data-c]').onclick = () => {
+    const [g, ans] = CHI[k], right = ans.length === sel.size && ans.every(i => sel.has(i));
+    q('[data-fb]').className = 'simfb ' + (right ? 'ok' : 'bad');
+    q('[data-fb]').innerHTML = (right ? '✔ Correct. ' : '✘ Not quite. ') + (ans.length ? `Chiral: <b>${ans.map(i => g[i]).join(', ')}</b> (four different groups attached).` : 'There is <b>no</b> chiral centre: every carbon has at least two identical groups.');
+  };
+  q('[data-nx]').onclick = () => { k = (k + 1) % CHI.length; show() }; show();
+};
+
+/* ---------------- Chapter 14: alkene reaction explorer ---------------- */
+const AK = {
+ 'ethene, CH₂=CH₂': { H2: 'ethane, CH₃CH₃', H2O: 'ethanol, CH₃CH₂OH', HBr: 'bromoethane, CH₃CH₂Br', Br2: '1,2-dibromoethane, CH₂BrCH₂Br', cold: 'ethane-1,2-diol, HOCH₂CH₂OH', hot: '2CO₂ (+ H₂O)' },
+ 'propene, CH₃CH=CH₂': { H2: 'propane', H2O: 'propan-2-ol (major), propan-1-ol (minor)', HBr: '2-bromopropane (major), 1-bromopropane (minor)', Br2: '1,2-dibromopropane', cold: 'propane-1,2-diol', hot: 'ethanoic acid + CO₂' },
+ 'but-2-ene, CH₃CH=CHCH₃': { H2: 'butane', H2O: 'butan-2-ol', HBr: '2-bromobutane (chiral: racemic mixture)', Br2: '2,3-dibromobutane', cold: 'butane-2,3-diol', hot: '2 CH₃COOH (ethanoic acid)' },
+ 'methylpropene, (CH₃)₂C=CH₂': { H2: '2-methylpropane', H2O: '2-methylpropan-2-ol (major)', HBr: '2-bromo-2-methylpropane (major, via tertiary carbocation)', Br2: '1,2-dibromo-2-methylpropane', cold: '2-methylpropane-1,2-diol', hot: 'propanone + CO₂' },
+ 'cyclohexene': { H2: 'cyclohexane', H2O: 'cyclohexanol', HBr: 'bromocyclohexane', Br2: '1,2-dibromocyclohexane', cold: 'cyclohexane-1,2-diol', hot: 'hexanedioic acid, HOOC(CH₂)₄COOH' },
+};
+const AKR = { H2: ['H₂, Ni catalyst, about 150 °C', 'addition (hydrogenation)'], H2O: ['steam, H₃PO₄ catalyst, 300 °C, 6 MPa', 'electrophilic addition (hydration)'], HBr: ['HBr(g), room temperature', 'electrophilic addition'], Br2: ['Br₂ in an organic solvent (or bromine water: orange → colourless)', 'electrophilic addition'], cold: ['cold, dilute, acidified KMnO₄ (purple → colourless)', 'oxidation (addition of two OH)'], hot: ['hot, concentrated, acidified KMnO₄', 'oxidation: C=C broken'] };
+SIMS.alkenerx = function (el) {
+  el.innerHTML = `<div class="row" style="flex-wrap:wrap;gap:6px"><select class="sel" data-a style="flex:1;min-width:200px">${Object.keys(AK).map(k => `<option>${k}</option>`).join('')}</select>
+   <select class="sel" data-r style="flex:1;min-width:200px">${Object.keys(AKR).map(k => `<option value="${k}">${AKR[k][0].split(',')[0].replace('(g)', '')}${k === 'cold' ? ' (cold, dilute)' : k === 'hot' ? ' (hot, conc.)' : ''}</option>`).join('')}</select></div><div class="simfb ok" data-o style="margin-top:8px;font-size:16px"></div>`;
+  const q = s => el.querySelector(s);
+  function go() { const a = q('[data-a]').value, r = q('[data-r]').value; q('[data-o]').innerHTML = `<b>${a}</b> + ${AKR[r][0]}<br>→ <b>${AK[a][r]}</b><br><span class="small">Type: ${AKR[r][1]}.${/major/.test(AK[a][r]) ? ' The major product comes from the more stable carbocation (H adds to the carbon that already has more H).' : ''}</span>` }
+  el.querySelectorAll('select').forEach(x => x.onchange = go); go();
+};
+
+/* ---------------- Chapter 14: radical step sorter ---------------- */
+const RS = [['Cl₂ → 2Cl•', 0], ['CH₄ + Cl• → CH₃• + HCl', 1], ['CH₃• + Cl₂ → CH₃Cl + Cl•', 1], ['CH₃• + Cl• → CH₃Cl', 2], ['2CH₃• → C₂H₆', 2], ['2Cl• → Cl₂', 2], ['CH₃Cl + Cl• → CH₂Cl• + HCl', 1], ['Br₂ → 2Br•', 0], ['C₂H₆ + Br• → C₂H₅• + HBr', 1], ['2C₂H₅• → C₄H₁₀', 2]];
+SIMS.radical = function (el) {
+  const NM = ['initiation', 'propagation', 'termination'];
+  let order = RS.map((_, i) => i).sort(() => Math.random() - .5), k = 0, ok = 0, n = 0;
+  el.innerHTML = `<p class="small muted" style="margin:0">Step <b data-k></b> of ${RS.length} · score <b data-sc>0</b></p><p data-st style="font-size:20px;margin:10px 0"></p>
+   <div class="row" style="gap:6px;flex-wrap:wrap">${NM.map((x, i) => `<button class="btn alt" data-p="${i}">${x}</button>`).join('')}</div><div class="simfb" data-fb></div><div class="row" style="margin-top:8px"><button class="btn y" data-nx>Next step</button></div>`;
+  const q = s => el.querySelector(s), bs = [...el.querySelectorAll('[data-p]')];
+  function show() { q('[data-k]').textContent = k + 1; q('[data-st]').textContent = RS[order[k]][0]; q('[data-fb]').className = 'simfb'; q('[data-fb]').innerHTML = ''; bs.forEach(b => { b.disabled = false; b.className = 'btn alt' }) }
+  bs.forEach(b => b.onclick = () => { const a = RS[order[k]][1], right = +b.dataset.p === a; n++; if (right) ok++; q('[data-sc]').textContent = `${ok}/${n}`; bs.forEach(x => x.disabled = true); bs[a].className = 'btn y';
+    q('[data-fb]').className = 'simfb ' + (right ? 'ok' : 'bad'); q('[data-fb]').innerHTML = `${right ? '✔' : '✘'} ${NM[a]}: ${['a molecule splits into two radicals (UV light)', 'one radical in, one radical out: the chain continues', 'two radicals join, so radicals are used up'][a]}.` });
+  q('[data-nx]').onclick = () => { k = (k + 1) % RS.length; if (!k) order.sort(() => Math.random() - .5); show() }; show();
+};
+/* ---------------- Chapter 15: halogenoalkane reaction explorer ---------------- */
+const HX = {
+  'bromoethane, CH₃CH₂Br': ['primary', 'ethanol, CH₃CH₂OH', 'propanenitrile, CH₃CH₂CN', 'ethylamine, CH₃CH₂NH₂', 'ethene, CH₂=CH₂', 'Br'],
+  '1-bromopropane, CH₃CH₂CH₂Br': ['primary', 'propan-1-ol', 'butanenitrile, CH₃CH₂CH₂CN', 'propylamine, CH₃CH₂CH₂NH₂', 'propene', 'Br'],
+  '2-bromopropane, CH₃CHBrCH₃': ['secondary', 'propan-2-ol', '2-methylpropanenitrile, (CH₃)₂CHCN', 'propan-2-amine, (CH₃)₂CHNH₂', 'propene', 'Br'],
+  '2-bromobutane, CH₃CHBrCH₂CH₃': ['secondary', 'butan-2-ol', '2-methylbutanenitrile', 'butan-2-amine', 'but-1-ene + E- and Z-but-2-ene (3 alkenes)', 'Br'],
+  '1-chlorobutane, CH₃(CH₂)₃Cl': ['primary', 'butan-1-ol', 'pentanenitrile, CH₃(CH₂)₃CN', 'butylamine, CH₃(CH₂)₃NH₂', 'but-1-ene', 'Cl'],
+  '1-iodobutane, CH₃(CH₂)₃I': ['primary', 'butan-1-ol', 'pentanenitrile, CH₃(CH₂)₃CN', 'butylamine, CH₃(CH₂)₃NH₂', 'but-1-ene', 'I'],
+  '2-bromo-2-methylpropane, (CH₃)₃CBr': ['tertiary', '2-methylpropan-2-ol, (CH₃)₃COH', '2,2-dimethylpropanenitrile, (CH₃)₃CCN', '2-methylpropan-2-amine', 'methylpropene, (CH₃)₂C=CH₂', 'Br'],
+};
+const HXR = {
+  oh: ['NaOH(aq), warm under reflux', 1], cn: ['KCN in ethanol, heat under reflux', 2], nh3: ['excess NH₃ in ethanol, heated in a sealed tube', 3],
+  el: ['NaOH in ethanol, hot, under reflux', 4], ag: ['AgNO₃ in aqueous ethanol, warm', 5],
+};
+SIMS.halorx = function (el) {
+  el.innerHTML = `<div class="row" style="flex-wrap:wrap;gap:6px"><select class="sel" data-h style="flex:1;min-width:200px">${Object.keys(HX).map(k => `<option>${k}</option>`).join('')}</select>
+   <select class="sel" data-g style="flex:1;min-width:200px">${Object.keys(HXR).map(k => `<option value="${k}">${HXR[k][0]}</option>`).join('')}</select></div><div class="simfb ok" data-o style="margin-top:8px;font-size:16px"></div>`;
+  const q = s => el.querySelector(s);
+  const MECH = { primary: 'SN2: one step; the nucleophile attacks the δ+ C as the C–X bond breaks (transition state, no intermediate).', secondary: 'a mixture of SN1 and SN2.', tertiary: 'SN1: the C–X bond breaks first (slow step) to give a tertiary carbocation, which the nucleophile then attacks (fast).' };
+  const PPT = { Cl: 'white AgCl, forms slowly', Br: 'cream AgBr', I: 'yellow AgI, forms fastest' };
+  function go() {
+    const h = q('[data-h]').value, g = q('[data-g]').value, d = HX[h], r = HXR[g]; let out, why;
+    if (g === 'el') { out = d[4]; why = 'Type: <b>elimination</b>. In ethanol, OH⁻ acts as a base and removes H⁺ from a carbon next to C–X, while X⁻ leaves; HX is lost and a C=C forms.' }
+    else if (g === 'ag') { out = d[1] + ' and a ' + PPT[d[5]] + ' precipitate'; why = 'Type: <b>nucleophilic substitution (hydrolysis)</b> by water; the X⁻ released meets Ag⁺. Rate: C–I &gt; C–Br &gt; C–Cl because the C–I bond is weakest. Mechanism here: ' + MECH[d[0]] }
+    else { out = d[r[1]]; why = 'Type: <b>nucleophilic substitution</b> (' + d[0] + ' halogenoalkane), mechanism ' + MECH[d[0]] + (g === 'cn' ? ' The chain is one carbon longer.' : g === 'nh3' ? ' Excess NH₃ reduces further substitution of the amine.' : '') }
+    q('[data-o]').innerHTML = `<b>${h}</b> + ${r[0]}<br>→ <b>${out}</b><br><span class="small">${why}</span>`;
+  }
+  el.querySelectorAll('select').forEach(x => x.onchange = go); go();
+};
+
+/* ---------------- Chapter 15: silver nitrate hydrolysis race ---------------- */
+const AGC = { '1-chlorobutane': ['Cl', 1], '1-bromobutane': ['Br', 1], '1-iodobutane': ['I', 1], '2-chloro-2-methylpropane': ['Cl', 25], '2-bromo-2-methylpropane': ['Br', 25], '2-iodo-2-methylpropane': ['I', 25] };
+SIMS.agrace = function (el) {
+  const HF = { Cl: 1, Br: 8, I: 40 }, COL = { Cl: '#f4f6f8', Br: '#f2e6b8', I: '#f3d23c' }, NAME = { Cl: 'white AgCl', Br: 'cream AgBr', I: 'yellow AgI' };
+  const dflt = ['1-chlorobutane', '1-bromobutane', '1-iodobutane'], ks = Object.keys(AGC);
+  el.innerHTML = `<p class="small muted" style="margin:0 0 6px">Pick three halogenoalkanes, then start. Each tube holds warm AgNO₃ in aqueous ethanol. Times are illustrative; the order is what matters.</p>
+   <div class="row" style="flex-wrap:wrap;gap:6px">${[0, 1, 2].map(i => `<select class="sel" data-t="${i}" style="flex:1;min-width:150px">${ks.map(k => `<option${k === dflt[i] ? ' selected' : ''}>${k}</option>`).join('')}</select>`).join('')}</div>
+   <svg viewBox="0 0 300 150" style="width:100%;max-width:420px;display:block;margin:8px auto">${[0, 1, 2].map(i => `<g transform="translate(${30 + i * 95},10)"><path d="M0 0 V100 a20 20 0 0 0 40 0 V0" fill="none" stroke="currentColor" stroke-width="2"/><path data-f="${i}" d="M2 30 V100 a18 18 0 0 0 36 0 V30 Z" fill="#dff1fb" /><text x="20" y="138" text-anchor="middle" font-size="11" data-l="${i}" fill="currentColor"></text></g>`).join('')}</svg>
+   <div class="row" style="gap:6px"><button class="btn y" data-go>Start</button><span class="small muted">time <b data-clk>0</b> s</span></div><div class="simfb" data-fb></div>`;
+  const q = s => el.querySelector(s); let timer = null;
+  function setup() { for (let i = 0; i < 3; i++) { q(`[data-f="${i}"]`).setAttribute('fill', '#dff1fb'); q(`[data-l="${i}"]`).textContent = '' } q('[data-clk]').textContent = 0; q('[data-fb]').className = 'simfb'; q('[data-fb]').innerHTML = '' }
+  function mix(a, b, f) { const p = x => [1, 3, 5].map(j => parseInt(x.substr(j, 2), 16)); const A = p(a), B = p(b); return 'rgb(' + A.map((v, j) => Math.round(v + (B[j] - v) * f)).join(',') + ')' }
+  el.querySelectorAll('select').forEach(s => s.onchange = () => { clearInterval(timer); setup() });
+  q('[data-go]').onclick = () => {
+    clearInterval(timer); setup();
+    const sel = [0, 1, 2].map(i => q(`[data-t="${i}"]`).value), T = sel.map(k => 1200 / (HF[AGC[k][0]] * AGC[k][1]));
+    let t = 0; const step = Math.max(...T) / 120;
+    timer = setInterval(() => {
+      t += step; q('[data-clk]').textContent = Math.round(t);
+      sel.forEach((k, i) => { const f = Math.min(1, t / T[i]); q(`[data-f="${i}"]`).setAttribute('fill', mix('#dff1fb', COL[AGC[k][0]], f)); if (f >= 1) q(`[data-l="${i}"]`).textContent = '✔ ' + Math.round(T[i]) + ' s' });
+      if (t >= Math.max(...T)) {
+        clearInterval(timer); const ord = sel.map((k, i) => [k, T[i]]).sort((a, b) => a[1] - b[1]);
+        q('[data-fb]').className = 'simfb ok';
+        q('[data-fb]').innerHTML = 'Order: ' + ord.map(x => `<b>${x[0]}</b> (${NAME[AGC[x[0]][0]]})`).join(' → ') + '.<br><span class="small">Weaker C–X bond (C–I &lt; C–Br &lt; C–Cl) → faster. Tertiary compounds also react faster here because they form a stable carbocation (SN1).</span>';
+      }
+    }, 100);
+  };
+  setup();
+};
 })();
